@@ -1,103 +1,30 @@
 "use client";
 
-import { useState } from "react";
-
-const categories = [
-  {
-    title: "Lost & Found",
-    description: "Report a lost item or submit something you found.",
-    icon: "🔎",
-  },
-  {
-    title: "Safety / Fight",
-    description: "Report fights, threats, unsafe situations or emergencies.",
-    icon: "🛡️",
-  },
-  {
-    title: "Faculty Complaint",
-    description: "Raise a concern regarding a faculty or staff member.",
-    icon: "👨‍🏫",
-  },
-  {
-    title: "Infrastructure",
-    description: "Report issues with classrooms, labs, washrooms or facilities.",
-    icon: "🏢",
-  },
-  {
-    title: "Academic",
-    description: "Report academic or examination-related problems.",
-    icon: "📚",
-  },
-  {
-    title: "Hostel",
-    description: "Report hostel-related issues and concerns.",
-    icon: "🏠",
-  },
-  {
-    title: "Transport",
-    description: "Report problems related to college transportation.",
-    icon: "🚌",
-  },
-  {
-    title: "Other",
-    description: "Report any other college-related problem.",
-    icon: "💬",
-  },
-];
-
-const recentTickets = [
-  {
-    id: "DSC-2026-00021",
-    title: "Classroom projector not working",
-    category: "Infrastructure",
-    status: "In Progress",
-  },
-  {
-    id: "DSC-2026-00018",
-    title: "Lost ID card",
-    category: "Lost & Found",
-    status: "Resolved",
-  },
-  {
-    id: "DSC-2026-00014",
-    title: "Water leakage in block",
-    category: "Infrastructure",
-    status: "Submitted",
-  },
-];
-
 export default function StudentDashboard() {
-  const [showCategories, setShowCategories] = useState(false);
-
   return (
     <main className="min-h-screen bg-slate-950 text-white">
 
-      {/* Header */}
-      <header className="border-b border-white/10 bg-slate-950/95">
+      {/* HEADER */}
+
+      <header className="border-b border-white/10 bg-slate-950">
+
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
 
-          <a href="/" className="text-xl font-bold tracking-tight">
+          <a
+            href="/"
+            className="text-xl font-bold tracking-tight"
+          >
             DSCE<span className="text-blue-400">CONNECT</span>
           </a>
 
           <div className="flex items-center gap-4">
 
-            <button
-              type="button"
-              className="relative rounded-full border border-white/10 px-3 py-2 text-sm hover:bg-white/5"
+            <a
+              href="/login"
+              className="text-sm text-slate-400 transition hover:text-white"
             >
-              🔔
-              <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px]">
-                2
-              </span>
-            </button>
-
-            <div className="hidden text-right sm:block">
-              <p className="text-sm font-medium">Student</p>
-              <p className="text-xs text-slate-500">
-                student@dsce.edu.in
-              </p>
-            </div>
+              Logout
+            </a>
 
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500 font-semibold">
               S
@@ -106,146 +33,315 @@ export default function StudentDashboard() {
           </div>
 
         </div>
+
       </header>
 
-      {/* Main */}
+      {/* MAIN */}
+
       <div className="mx-auto max-w-7xl px-6 py-10">
 
-        {/* Welcome */}
+        {/* WELCOME */}
+
         <section className="mb-10">
 
           <p className="text-sm font-medium text-blue-400">
             STUDENT PORTAL
           </p>
 
-          <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
-            Welcome back, Student 👋
+          <h1 className="mt-2 text-3xl font-bold sm:text-4xl">
+            Welcome back, Student
           </h1>
 
           <p className="mt-3 max-w-2xl text-slate-400">
-            Report problems, track complaints and help make DSCE a better
-            campus for everyone.
+            Report campus problems, track your complaints and stay
+            updated on their progress.
           </p>
 
         </section>
 
-        {/* Quick Stats */}
-        <section className="mb-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {/* QUICK ACTIONS */}
 
-          <StatCard
-            title="Total Reports"
-            value="12"
-            description="Reports submitted"
-          />
-
-          <StatCard
-            title="In Progress"
-            value="3"
-            description="Currently being handled"
-          />
-
-          <StatCard
-            title="Resolved"
-            value="8"
-            description="Successfully resolved"
-          />
-
-          <StatCard
-            title="Pending"
-            value="1"
-            description="Awaiting action"
-          />
-
-        </section>
-
-        {/* Report Problem */}
         <section className="mb-10">
 
-          <div className="mb-5">
-            <h2 className="text-xl font-semibold">
-              Report a Problem
-            </h2>
+          <h2 className="mb-5 text-xl font-semibold">
+            Quick Actions
+          </h2>
 
-            <p className="mt-1 text-sm text-slate-500">
-              Choose the category that best describes your issue.
-            </p>
+          <div className="grid gap-5 md:grid-cols-3">
+
+            {/* REPORT PROBLEM */}
+
+            <a
+              href="/complaint"
+              className="group rounded-2xl border border-blue-400/20 bg-blue-400/[0.05] p-6 transition hover:border-blue-400/50 hover:bg-blue-400/[0.08]"
+            >
+
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-500 text-xl">
+                +
+              </div>
+
+              <h3 className="mt-5 text-lg font-semibold">
+                Report a Problem
+              </h3>
+
+              <p className="mt-2 text-sm leading-6 text-slate-500">
+                Submit a new complaint about infrastructure,
+                academics, transport, hostel or other campus issues.
+              </p>
+
+              <p className="mt-5 text-sm font-medium text-blue-400">
+                Submit Complaint →
+              </p>
+
+            </a>
+
+            {/* MY COMPLAINTS */}
+
+            <a
+              href="/student/tickets"
+              className="group rounded-2xl border border-white/10 bg-white/[0.03] p-6 transition hover:border-white/20 hover:bg-white/[0.06]"
+            >
+
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-500/20 text-xl">
+                🎫
+              </div>
+
+              <h3 className="mt-5 text-lg font-semibold">
+                My Complaints
+              </h3>
+
+              <p className="mt-2 text-sm leading-6 text-slate-500">
+                View your submitted complaints and track their
+                current status and progress.
+              </p>
+
+              <p className="mt-5 text-sm font-medium text-purple-400">
+                View Tickets →
+              </p>
+
+            </a>
+
+            {/* NOTIFICATIONS */}
+
+            <a
+              href="#notifications"
+              className="group rounded-2xl border border-white/10 bg-white/[0.03] p-6 transition hover:border-white/20 hover:bg-white/[0.06]"
+            >
+
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-yellow-500/20 text-xl">
+                🔔
+              </div>
+
+              <h3 className="mt-5 text-lg font-semibold">
+                Notifications
+              </h3>
+
+              <p className="mt-2 text-sm leading-6 text-slate-500">
+                Check updates and responses related to your
+                complaints.
+              </p>
+
+              <p className="mt-5 text-sm font-medium text-yellow-400">
+                View Updates →
+              </p>
+
+            </a>
+
           </div>
-
-          <button
-            type="button"
-            onClick={() => setShowCategories(!showCategories)}
-            className="mb-6 rounded-xl bg-blue-500 px-5 py-3 font-semibold transition hover:bg-blue-400"
-          >
-            + Report a New Problem
-          </button>
-
-          {showCategories && (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-
-              {categories.map((category) => (
-                <CategoryCard
-                  key={category.title}
-                  icon={category.icon}
-                  title={category.title}
-                  description={category.description}
-                />
-              ))}
-
-            </div>
-          )}
 
         </section>
 
-        {/* Recent Tickets */}
-        <section>
+        {/* STATISTICS */}
+
+        <section className="mb-10">
+
+          <h2 className="mb-5 text-xl font-semibold">
+            Complaint Overview
+          </h2>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+
+            <StatCard
+              number="3"
+              title="Total Complaints"
+              description="All submitted complaints"
+            />
+
+            <StatCard
+              number="1"
+              title="In Progress"
+              description="Currently being handled"
+            />
+
+            <StatCard
+              number="1"
+              title="Under Review"
+              description="Awaiting action"
+            />
+
+            <StatCard
+              number="1"
+              title="Resolved"
+              description="Successfully completed"
+            />
+
+          </div>
+
+        </section>
+
+        {/* RECENT COMPLAINTS */}
+
+        <section className="mb-10">
 
           <div className="mb-5 flex items-end justify-between">
 
             <div>
+
               <h2 className="text-xl font-semibold">
-                My Recent Tickets
+                Recent Complaints
               </h2>
 
               <p className="mt-1 text-sm text-slate-500">
-                Track the status of your submitted complaints.
+                Your latest submitted complaints.
               </p>
+
             </div>
 
-            <button
-              type="button"
+            <a
+              href="/student/tickets"
               className="text-sm font-medium text-blue-400 hover:text-blue-300"
             >
-              View All
-            </button>
+              View All →
+            </a>
 
           </div>
 
           <div className="overflow-hidden rounded-2xl border border-white/10">
 
-            {recentTickets.map((ticket) => (
-              <div
-                key={ticket.id}
-                className="flex flex-col gap-4 border-b border-white/10 p-5 last:border-b-0 sm:flex-row sm:items-center sm:justify-between"
-              >
+            {/* TICKET 1 */}
+
+            <a
+              href="/student/tickets"
+              className="block border-b border-white/10 p-5 transition hover:bg-white/[0.04]"
+            >
+
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 
                 <div>
 
-                  <p className="text-sm font-semibold">
-                    {ticket.title}
+                  <p className="text-xs font-medium text-blue-400">
+                    DSC-2026-00125
                   </p>
 
-                  <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-500">
-                    <span>{ticket.id}</span>
-                    <span>•</span>
-                    <span>{ticket.category}</span>
-                  </div>
+                  <h3 className="mt-2 font-semibold">
+                    Projector not working in Room 204
+                  </h3>
+
+                  <p className="mt-2 text-xs text-slate-500">
+                    Infrastructure • Block A, Room 204
+                  </p>
 
                 </div>
 
-                <StatusBadge status={ticket.status} />
+                <StatusBadge status="In Progress" />
 
               </div>
-            ))}
+
+            </a>
+
+            {/* TICKET 2 */}
+
+            <a
+              href="/student/tickets"
+              className="block border-b border-white/10 p-5 transition hover:bg-white/[0.04]"
+            >
+
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+
+                <div>
+
+                  <p className="text-xs font-medium text-blue-400">
+                    DSC-2026-00118
+                  </p>
+
+                  <h3 className="mt-2 font-semibold">
+                    Lost student ID card
+                  </h3>
+
+                  <p className="mt-2 text-xs text-slate-500">
+                    Lost & Found • Main Library
+                  </p>
+
+                </div>
+
+                <StatusBadge status="Under Review" />
+
+              </div>
+
+            </a>
+
+            {/* TICKET 3 */}
+
+            <a
+              href="/student/tickets"
+              className="block p-5 transition hover:bg-white/[0.04]"
+            >
+
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+
+                <div>
+
+                  <p className="text-xs font-medium text-blue-400">
+                    DSC-2026-00105
+                  </p>
+
+                  <h3 className="mt-2 font-semibold">
+                    Classroom fan not working
+                  </h3>
+
+                  <p className="mt-2 text-xs text-slate-500">
+                    Infrastructure • Block C, Room 101
+                  </p>
+
+                </div>
+
+                <StatusBadge status="Resolved" />
+
+              </div>
+
+            </a>
+
+          </div>
+
+        </section>
+
+        {/* INFORMATION */}
+
+        <section
+          id="notifications"
+          className="rounded-2xl border border-blue-400/10 bg-blue-400/[0.04] p-6 sm:p-8"
+        >
+
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
+
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-500/20 text-xl">
+              ℹ️
+            </div>
+
+            <div>
+
+              <h2 className="text-lg font-semibold">
+                How DSCE Connect works
+              </h2>
+
+              <p className="mt-2 text-sm leading-6 text-slate-400">
+                Submit your campus issue through the complaint form.
+                Once submitted, you will receive a unique ticket ID.
+                You can use the ticket tracking page to follow its
+                progress from submission to resolution.
+              </p>
+
+            </div>
 
           </div>
 
@@ -257,24 +353,27 @@ export default function StudentDashboard() {
   );
 }
 
+
+/* STAT CARD */
+
 function StatCard({
+  number,
   title,
-  value,
   description,
 }: {
+  number: string;
   title: string;
-  value: string;
   description: string;
 }) {
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
 
-      <p className="text-sm text-slate-500">
-        {title}
+      <p className="text-3xl font-bold">
+        {number}
       </p>
 
-      <p className="mt-2 text-3xl font-bold">
-        {value}
+      <p className="mt-2 text-sm font-medium">
+        {title}
       </p>
 
       <p className="mt-1 text-xs text-slate-600">
@@ -285,52 +384,28 @@ function StatCard({
   );
 }
 
-function CategoryCard({
-  icon,
-  title,
-  description,
+
+/* STATUS BADGE */
+
+function StatusBadge({
+  status,
 }: {
-  icon: string;
-  title: string;
-  description: string;
+  status: "Submitted" | "Under Review" | "Assigned" | "In Progress" | "Resolved";
 }) {
-  return (
-    <button
-      type="button"
-      className="group rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-left transition hover:-translate-y-1 hover:border-blue-400/40 hover:bg-blue-400/[0.05]"
-    >
-
-      <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-white/5 text-2xl">
-        {icon}
-      </div>
-
-      <h3 className="font-semibold">
-        {title}
-      </h3>
-
-      <p className="mt-2 text-sm leading-6 text-slate-500">
-        {description}
-      </p>
-
-      <p className="mt-4 text-sm font-medium text-blue-400 opacity-0 transition group-hover:opacity-100">
-        Report →
-      </p>
-
-    </button>
-  );
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const statusStyle =
+  const style =
     status === "Resolved"
       ? "bg-green-500/10 text-green-400"
       : status === "In Progress"
       ? "bg-yellow-500/10 text-yellow-400"
-      : "bg-blue-500/10 text-blue-400";
+      : status === "Under Review"
+      ? "bg-blue-500/10 text-blue-400"
+      : status === "Assigned"
+      ? "bg-purple-500/10 text-purple-400"
+      : "bg-slate-500/10 text-slate-400";
 
   return (
     <span
-      className={`w-fit rounded-full px-3 py-1.5 text-xs font-medium ${statusStyle}`}
+      className={`whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium ${style}`}
     >
       {status}
     </span>

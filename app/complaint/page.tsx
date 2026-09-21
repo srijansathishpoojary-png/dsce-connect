@@ -1,338 +1,470 @@
 "use client";
 
-import { useState } from "react";
+import { FormEvent, useState } from "react";
 
-const categories = [
-  {
-    title: "Lost & Found",
-    description: "Report a lost item or submit something you found.",
-    icon: "🔎",
-  },
-  {
-    title: "Safety / Fight",
-    description: "Report fights, threats, unsafe situations or emergencies.",
-    icon: "🛡️",
-  },
-  {
-    title: "Faculty Complaint",
-    description: "Raise a concern regarding a faculty or staff member.",
-    icon: "👨‍🏫",
-  },
-  {
-    title: "Infrastructure",
-    description: "Report issues with classrooms, labs, washrooms or facilities.",
-    icon: "🏢",
-  },
-  {
-    title: "Academic",
-    description: "Report academic or examination-related problems.",
-    icon: "📚",
-  },
-  {
-    title: "Hostel",
-    description: "Report hostel-related issues and concerns.",
-    icon: "🏠",
-  },
-  {
-    title: "Transport",
-    description: "Report problems related to college transportation.",
-    icon: "🚌",
-  },
-  {
-    title: "Other",
-    description: "Report any other college-related problem.",
-    icon: "💬",
-  },
-];
+type Complaint = {
+  id: string;
+  title: string;
+  category: string;
+  location: string;
+  priority: "Low" | "Medium" | "High" | "Emergency";
+  description: string;
+  status: "Submitted";
+  assignedTo: string;
+  submitted: string;
+  updated: string;
+  adminNote: string;
+};
 
-const recentTickets = [
-  {
-    id: "DSC-2026-00021",
-    title: "Classroom projector not working",
-    category: "Infrastructure",
-    status: "In Progress",
-  },
-  {
-    id: "DSC-2026-00018",
-    title: "Lost ID card",
-    category: "Lost & Found",
-    status: "Resolved",
-  },
-  {
-    id: "DSC-2026-00014",
-    title: "Water leakage in block",
-    category: "Infrastructure",
-    status: "Submitted",
-  },
-];
+export default function ComplaintPage() {
+  const [submitted, setSubmitted] = useState(false);
+  const [ticketId, setTicketId] = useState("");
 
-export default function StudentDashboard() {
-  const [showCategories, setShowCategories] = useState(false);
+  const [form, setForm] = useState({
+    category: "",
+    title: "",
+    description: "",
+    location: "",
+    priority: "Medium",
+    confidential: false,
+  });
 
-  return (
-    <main className="min-h-screen bg-slate-950 text-white">
+  function handleChange(
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
+  ) {
+    const { name, value, type } = e.target;
 
-      {/* Header */}
-      <header className="border-b border-white/10 bg-slate-950/95">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
+    setForm((current) => ({
+      ...current,
+      [name]:
+        type === "checkbox"
+          ? (e.target as HTMLInputElement).checked
+          : value,
+    }));
+  }
 
-          <a href="/" className="text-xl font-bold tracking-tight">
-            DSCE<span className="text-blue-400">CONNECT</span>
-          </a>
+  function generateTicketId() {
+    const randomNumber = Math.floor(10000 + Math.random() * 90000);
 
-          <div className="flex items-center gap-4">
+    return `DSC-${new Date().getFullYear()}-${randomNumber}`;
+  }
 
-            <button
-              type="button"
-              className="relative rounded-full border border-white/10 px-3 py-2 text-sm hover:bg-white/5"
+  function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+
+    const newTicketId = generateTicketId();
+
+    const now = new Date();
+
+    const newComplaint: Complaint = {
+      id: newTicketId,
+      title: form.title,
+      category: form.category,
+      location: form.location,
+      priority: form.priority as Complaint["priority"],
+      description: form.description,
+      status: "Submitted",
+      assignedTo: "Unassigned",
+      submitted: now.toLocaleString(),
+      updated: now.toLocaleString(),
+      adminNote: "Your complaint has been successfully submitted.",
+    };
+
+    /*
+      Store the new complaint in browser storage.
+      This is temporary. Later we will replace this
+      with a real database.
+    */
+
+    const existingComplaints =
+      JSON.parse(
+        localStorage.getItem("dsce_complaints") || "[]"
+      ) as Complaint[];
+
+    localStorage.setItem(
+      "dsce_complaints",
+      JSON.stringify([
+        newComplaint,
+        ...existingComplaints,
+      ])
+    );
+
+    setTicketId(newTicketId);
+    setSubmitted(true);
+  }
+
+  if (submitted) {
+    return (
+      <main className="min-h-screen bg-slate-950 text-white">
+
+        {/* HEADER */}
+
+        <header className="border-b border-white/10">
+
+          <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
+
+            <a
+              href="/"
+              className="text-xl font-bold tracking-tight"
             >
-              🔔
-              <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px]">
-                2
-              </span>
-            </button>
+              DSCE<span className="text-blue-400">CONNECT</span>
+            </a>
 
-            <div className="hidden text-right sm:block">
-              <p className="text-sm font-medium">Student</p>
-              <p className="text-xs text-slate-500">
-                student@dsce.edu.in
-              </p>
+            <a
+              href="/student"
+              className="text-sm text-slate-400 hover:text-white"
+            >
+              ← Student Dashboard
+            </a>
+
+          </div>
+
+        </header>
+
+        {/* SUCCESS */}
+
+        <div className="mx-auto flex min-h-[80vh] max-w-2xl items-center justify-center px-6">
+
+          <div className="w-full rounded-3xl border border-green-400/20 bg-green-400/[0.04] p-8 text-center sm:p-12">
+
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-green-500/10 text-4xl">
+              ✓
             </div>
 
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500 font-semibold">
-              S
+            <p className="mt-6 text-sm font-medium text-green-400">
+              COMPLAINT SUBMITTED
+            </p>
+
+            <h1 className="mt-2 text-3xl font-bold">
+              Your complaint has been submitted
+            </h1>
+
+            <p className="mx-auto mt-4 max-w-lg text-slate-400">
+              Your complaint has been successfully recorded.
+              Keep your ticket ID to track its progress.
+            </p>
+
+            {/* TICKET ID */}
+
+            <div className="mt-8 rounded-2xl border border-white/10 bg-slate-900 p-6">
+
+              <p className="text-xs font-medium text-slate-500">
+                YOUR TICKET ID
+              </p>
+
+              <p className="mt-3 text-2xl font-bold tracking-wider text-blue-400">
+                {ticketId}
+              </p>
+
+            </div>
+
+            {/* ACTIONS */}
+
+            <div className="mt-8 grid gap-3 sm:grid-cols-2">
+
+              <a
+                href="/student/tickets"
+                className="rounded-xl bg-blue-500 px-5 py-3 font-semibold transition hover:bg-blue-400"
+              >
+                Track My Complaint
+              </a>
+
+              <a
+                href="/student"
+                className="rounded-xl border border-white/10 px-5 py-3 font-semibold transition hover:bg-white/[0.05]"
+              >
+                Student Dashboard
+              </a>
+
             </div>
 
           </div>
 
         </div>
+
+      </main>
+    );
+  }
+
+  return (
+    <main className="min-h-screen bg-slate-950 text-white">
+
+      {/* HEADER */}
+
+      <header className="border-b border-white/10">
+
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
+
+          <a
+            href="/"
+            className="text-xl font-bold tracking-tight"
+          >
+            DSCE<span className="text-blue-400">CONNECT</span>
+          </a>
+
+          <a
+            href="/student"
+            className="text-sm text-slate-400 transition hover:text-white"
+          >
+            ← Student Dashboard
+          </a>
+
+        </div>
+
       </header>
 
-      {/* Main */}
-      <div className="mx-auto max-w-7xl px-6 py-10">
+      {/* MAIN */}
 
-        {/* Welcome */}
+      <div className="mx-auto max-w-3xl px-6 py-10">
+
+        {/* TITLE */}
+
         <section className="mb-10">
 
           <p className="text-sm font-medium text-blue-400">
             STUDENT PORTAL
           </p>
 
-          <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
-            Welcome back, Student 👋
+          <h1 className="mt-2 text-3xl font-bold sm:text-4xl">
+            Report a Problem
           </h1>
 
-          <p className="mt-3 max-w-2xl text-slate-400">
-            Report problems, track complaints and help make DSCE a better
-            campus for everyone.
+          <p className="mt-3 text-slate-400">
+            Tell us about the issue you are facing on campus.
+            Your complaint will be reviewed by the appropriate
+            authority.
           </p>
 
         </section>
 
-        {/* Quick Stats */}
-        <section className="mb-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {/* FORM */}
 
-          <StatCard
-            title="Total Reports"
-            value="12"
-            description="Reports submitted"
-          />
+        <form
+          onSubmit={handleSubmit}
+          className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 sm:p-8"
+        >
 
-          <StatCard
-            title="In Progress"
-            value="3"
-            description="Currently being handled"
-          />
+          {/* CATEGORY */}
 
-          <StatCard
-            title="Resolved"
-            value="8"
-            description="Successfully resolved"
-          />
+          <div className="mb-6">
 
-          <StatCard
-            title="Pending"
-            value="1"
-            description="Awaiting action"
-          />
+            <label
+              htmlFor="category"
+              className="text-sm font-medium"
+            >
+              Complaint Category
+            </label>
 
-        </section>
+            <select
+              id="category"
+              name="category"
+              value={form.category}
+              onChange={handleChange}
+              required
+              className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm outline-none focus:border-blue-400"
+            >
 
-        {/* Report Problem */}
-        <section className="mb-10">
+              <option value="">
+                Select a category
+              </option>
 
-          <div className="mb-5">
-            <h2 className="text-xl font-semibold">
-              Report a Problem
-            </h2>
+              <option value="Infrastructure">
+                Infrastructure
+              </option>
 
-            <p className="mt-1 text-sm text-slate-500">
-              Choose the category that best describes your issue.
-            </p>
+              <option value="Academic">
+                Academic
+              </option>
+
+              <option value="Hostel">
+                Hostel
+              </option>
+
+              <option value="Transport">
+                Transport
+              </option>
+
+              <option value="Library">
+                Library
+              </option>
+
+              <option value="Lost & Found">
+                Lost & Found
+              </option>
+
+              <option value="Security">
+                Security
+              </option>
+
+              <option value="Other">
+                Other
+              </option>
+
+            </select>
+
           </div>
+
+          {/* TITLE */}
+
+          <div className="mb-6">
+
+            <label
+              htmlFor="title"
+              className="text-sm font-medium"
+            >
+              Complaint Title
+            </label>
+
+            <input
+              id="title"
+              name="title"
+              type="text"
+              value={form.title}
+              onChange={handleChange}
+              required
+              placeholder="Briefly describe the problem"
+              className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm outline-none placeholder:text-slate-600 focus:border-blue-400"
+            />
+
+          </div>
+
+          {/* DESCRIPTION */}
+
+          <div className="mb-6">
+
+            <label
+              htmlFor="description"
+              className="text-sm font-medium"
+            >
+              Description
+            </label>
+
+            <textarea
+              id="description"
+              name="description"
+              value={form.description}
+              onChange={handleChange}
+              required
+              rows={6}
+              placeholder="Explain the problem in detail..."
+              className="mt-2 w-full resize-none rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm outline-none placeholder:text-slate-600 focus:border-blue-400"
+            />
+
+          </div>
+
+          {/* LOCATION */}
+
+          <div className="mb-6">
+
+            <label
+              htmlFor="location"
+              className="text-sm font-medium"
+            >
+              Location
+            </label>
+
+            <input
+              id="location"
+              name="location"
+              type="text"
+              value={form.location}
+              onChange={handleChange}
+              required
+              placeholder="Example: Block A, Room 204"
+              className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm outline-none placeholder:text-slate-600 focus:border-blue-400"
+            />
+
+          </div>
+
+          {/* PRIORITY */}
+
+          <div className="mb-6">
+
+            <label
+              htmlFor="priority"
+              className="text-sm font-medium"
+            >
+              Priority
+            </label>
+
+            <select
+              id="priority"
+              name="priority"
+              value={form.priority}
+              onChange={handleChange}
+              className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm outline-none focus:border-blue-400"
+            >
+
+              <option value="Low">
+                Low
+              </option>
+
+              <option value="Medium">
+                Medium
+              </option>
+
+              <option value="High">
+                High
+              </option>
+
+              <option value="Emergency">
+                Emergency
+              </option>
+
+            </select>
+
+          </div>
+
+          {/* CONFIDENTIAL */}
+
+          <div className="mb-8 rounded-xl border border-white/10 bg-slate-900/50 p-4">
+
+            <label className="flex cursor-pointer items-start gap-3">
+
+              <input
+                type="checkbox"
+                name="confidential"
+                checked={form.confidential}
+                onChange={handleChange}
+                className="mt-1 h-4 w-4"
+              />
+
+              <span>
+
+                <span className="block text-sm font-medium">
+                  Request confidential handling
+                </span>
+
+                <span className="mt-1 block text-xs leading-5 text-slate-500">
+                  Ask the administration to handle the complaint
+                  with additional privacy.
+                </span>
+
+              </span>
+
+            </label>
+
+          </div>
+
+          {/* SUBMIT */}
 
           <button
-            type="button"
-            onClick={() => setShowCategories(!showCategories)}
-            className="mb-6 rounded-xl bg-blue-500 px-5 py-3 font-semibold transition hover:bg-blue-400"
+            type="submit"
+            className="w-full rounded-xl bg-blue-500 px-5 py-3.5 font-semibold transition hover:bg-blue-400"
           >
-            + Report a New Problem
+            Submit Complaint
           </button>
 
-          {showCategories && (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <p className="mt-4 text-center text-xs text-slate-600">
+            You will receive a unique ticket ID after submission.
+          </p>
 
-              {categories.map((category) => (
-                <CategoryCard
-                  key={category.title}
-                  icon={category.icon}
-                  title={category.title}
-                  description={category.description}
-                />
-              ))}
-
-            </div>
-          )}
-
-        </section>
-
-        {/* Recent Tickets */}
-        <section>
-
-          <div className="mb-5 flex items-end justify-between">
-
-            <div>
-              <h2 className="text-xl font-semibold">
-                My Recent Tickets
-              </h2>
-
-              <p className="mt-1 text-sm text-slate-500">
-                Track the status of your submitted complaints.
-              </p>
-            </div>
-
-            <button
-              type="button"
-              className="text-sm font-medium text-blue-400 hover:text-blue-300"
-            >
-              View All
-            </button>
-
-          </div>
-
-          <div className="overflow-hidden rounded-2xl border border-white/10">
-
-            {recentTickets.map((ticket) => (
-              <div
-                key={ticket.id}
-                className="flex flex-col gap-4 border-b border-white/10 p-5 last:border-b-0 sm:flex-row sm:items-center sm:justify-between"
-              >
-
-                <div>
-
-                  <p className="text-sm font-semibold">
-                    {ticket.title}
-                  </p>
-
-                  <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-500">
-                    <span>{ticket.id}</span>
-                    <span>•</span>
-                    <span>{ticket.category}</span>
-                  </div>
-
-                </div>
-
-                <StatusBadge status={ticket.status} />
-
-              </div>
-            ))}
-
-          </div>
-
-        </section>
+        </form>
 
       </div>
 
     </main>
-  );
-}
-
-function StatCard({
-  title,
-  value,
-  description,
-}: {
-  title: string;
-  value: string;
-  description: string;
-}) {
-  return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-
-      <p className="text-sm text-slate-500">
-        {title}
-      </p>
-
-      <p className="mt-2 text-3xl font-bold">
-        {value}
-      </p>
-
-      <p className="mt-1 text-xs text-slate-600">
-        {description}
-      </p>
-
-    </div>
-  );
-}
-
-function CategoryCard({
-  icon,
-  title,
-  description,
-}: {
-  icon: string;
-  title: string;
-  description: string;
-}) {
-  return (
-    <button
-      type="button"
-      className="group rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-left transition hover:-translate-y-1 hover:border-blue-400/40 hover:bg-blue-400/[0.05]"
-    >
-
-      <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-white/5 text-2xl">
-        {icon}
-      </div>
-
-      <h3 className="font-semibold">
-        {title}
-      </h3>
-
-      <p className="mt-2 text-sm leading-6 text-slate-500">
-        {description}
-      </p>
-
-      <p className="mt-4 text-sm font-medium text-blue-400 opacity-0 transition group-hover:opacity-100">
-        Report →
-      </p>
-
-    </button>
-  );
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const statusStyle =
-    status === "Resolved"
-      ? "bg-green-500/10 text-green-400"
-      : status === "In Progress"
-      ? "bg-yellow-500/10 text-yellow-400"
-      : "bg-blue-500/10 text-blue-400";
-
-  return (
-    <span
-      className={`w-fit rounded-full px-3 py-1.5 text-xs font-medium ${statusStyle}`}
-    >
-      {status}
-    </span>
   );
 }
