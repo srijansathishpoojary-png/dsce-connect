@@ -115,10 +115,7 @@ export default function AdminDashboard() {
     return matchesStatus && matchesPriority && matchesSearch;
   });
 
-  function updateTicket(
-    ticketId: string,
-    updates: Partial<Ticket>
-  ) {
+  function updateTicket(ticketId: string, updates: Partial<Ticket>) {
     setTickets((currentTickets) =>
       currentTickets.map((ticket) =>
         ticket.id === ticketId
@@ -137,9 +134,9 @@ export default function AdminDashboard() {
   return (
     <main className="min-h-screen bg-slate-950 text-white">
 
-      {/* Header */}
+      {/* HEADER */}
 
-      <header className="border-b border-white/10 bg-slate-950/95">
+      <header className="border-b border-white/10 bg-slate-950">
 
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
 
@@ -185,11 +182,11 @@ export default function AdminDashboard() {
 
       </header>
 
-      {/* Main */}
+      {/* MAIN */}
 
       <div className="mx-auto max-w-7xl px-6 py-10">
 
-        {/* Heading */}
+        {/* PAGE TITLE */}
 
         <section className="mb-10">
 
@@ -197,18 +194,18 @@ export default function AdminDashboard() {
             ADMINISTRATION
           </p>
 
-          <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
+          <h1 className="mt-2 text-3xl font-bold sm:text-4xl">
             Admin Dashboard
           </h1>
 
           <p className="mt-3 max-w-3xl text-slate-400">
-            Review complaints, assign responsible authorities, monitor
-            progress and manage campus issues.
+            Review complaints, assign responsible authorities,
+            monitor progress and manage campus issues.
           </p>
 
         </section>
 
-        {/* Statistics */}
+        {/* STATISTICS */}
 
         <section className="mb-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
 
@@ -220,13 +217,17 @@ export default function AdminDashboard() {
 
           <StatCard
             title="New"
-            value={tickets.filter((t) => t.status === "New").length.toString()}
+            value={tickets.filter(
+              (t) => t.status === "New"
+            ).length.toString()}
             description="Need review"
           />
 
           <StatCard
             title="In Progress"
-            value={tickets.filter((t) => t.status === "In Progress").length.toString()}
+            value={tickets.filter(
+              (t) => t.status === "In Progress"
+            ).length.toString()}
             description="Being handled"
           />
 
@@ -242,19 +243,19 @@ export default function AdminDashboard() {
 
           <StatCard
             title="Resolved"
-            value={tickets.filter((t) => t.status === "Resolved").length.toString()}
+            value={tickets.filter(
+              (t) => t.status === "Resolved"
+            ).length.toString()}
             description="Completed"
           />
 
         </section>
 
-        {/* Filters */}
+        {/* SEARCH AND FILTERS */}
 
         <section className="mb-6 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
 
           <div className="grid gap-4 lg:grid-cols-4">
-
-            {/* Search */}
 
             <div className="lg:col-span-2">
 
@@ -263,6 +264,7 @@ export default function AdminDashboard() {
               </label>
 
               <input
+                type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search by ticket ID, title or category..."
@@ -270,8 +272,6 @@ export default function AdminDashboard() {
               />
 
             </div>
-
-            {/* Status */}
 
             <div>
 
@@ -284,19 +284,15 @@ export default function AdminDashboard() {
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm outline-none focus:border-blue-400"
               >
-
                 <option>All</option>
                 <option>New</option>
                 <option>Under Review</option>
                 <option>Assigned</option>
                 <option>In Progress</option>
                 <option>Resolved</option>
-
               </select>
 
             </div>
-
-            {/* Priority */}
 
             <div>
 
@@ -309,13 +305,11 @@ export default function AdminDashboard() {
                 onChange={(e) => setPriorityFilter(e.target.value)}
                 className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm outline-none focus:border-blue-400"
               >
-
                 <option>All</option>
                 <option>Emergency</option>
                 <option>High</option>
                 <option>Medium</option>
                 <option>Low</option>
-
               </select>
 
             </div>
@@ -324,7 +318,7 @@ export default function AdminDashboard() {
 
         </section>
 
-        {/* Complaints */}
+        {/* COMPLAINT QUEUE */}
 
         <section>
 
@@ -370,7 +364,9 @@ export default function AdminDashboard() {
                         {ticket.id}
                       </span>
 
-                      <PriorityBadge priority={ticket.priority} />
+                      <PriorityBadge
+                        priority={ticket.priority}
+                      />
 
                     </div>
 
@@ -419,6 +415,7 @@ export default function AdminDashboard() {
             ))}
 
             {filteredTickets.length === 0 && (
+
               <div className="p-10 text-center">
 
                 <p className="text-lg font-medium">
@@ -430,6 +427,7 @@ export default function AdminDashboard() {
                 </p>
 
               </div>
+
             )}
 
           </div>
@@ -438,7 +436,7 @@ export default function AdminDashboard() {
 
       </div>
 
-      {/* Ticket Detail Modal */}
+      {/* TICKET DETAIL MODAL */}
 
       {selectedTicket && (
 
@@ -470,7 +468,7 @@ export default function AdminDashboard() {
 
             </div>
 
-            {/* Details */}
+            {/* DETAILS */}
 
             <div className="mt-8 grid gap-4 sm:grid-cols-2">
 
@@ -496,7 +494,7 @@ export default function AdminDashboard() {
 
             </div>
 
-            {/* Status */}
+            {/* STATUS */}
 
             <div className="mt-8">
 
@@ -524,7 +522,7 @@ export default function AdminDashboard() {
 
             </div>
 
-            {/* Assignment */}
+            {/* ASSIGNMENT */}
 
             <div className="mt-6">
 
@@ -558,7 +556,7 @@ export default function AdminDashboard() {
 
             </div>
 
-            {/* Admin Note */}
+            {/* ADMIN NOTE */}
 
             <div className="mt-6">
 
@@ -574,7 +572,7 @@ export default function AdminDashboard() {
 
             </div>
 
-            {/* Close */}
+            {/* CLOSE */}
 
             <button
               type="button"
@@ -594,7 +592,8 @@ export default function AdminDashboard() {
   );
 }
 
-/* Statistics */
+
+/* STAT CARD */
 
 function StatCard({
   title,
@@ -624,7 +623,8 @@ function StatCard({
   );
 }
 
-/* Status */
+
+/* STATUS BADGE */
 
 function StatusBadge({
   status,
@@ -651,7 +651,8 @@ function StatusBadge({
   );
 }
 
-/* Priority */
+
+/* PRIORITY BADGE */
 
 function PriorityBadge({
   priority,
@@ -676,7 +677,8 @@ function PriorityBadge({
   );
 }
 
-/* Detail */
+
+/* DETAIL BOX */
 
 function Detail({
   label,
