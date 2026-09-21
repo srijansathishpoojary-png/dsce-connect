@@ -2,28 +2,28 @@
 
 import { useState } from "react";
 
-export default function LoginPage() {
-  const [role, setRole] = useState<"student" | "faculty" | "admin">(
-    "student"
-  );
+type Role = "student" | "faculty" | "admin";
 
-  const roleInfo = {
-    student: {
-      title: "Student Login",
-      description: "Access your DSCE Connect student account.",
-      email: "student@dsce.edu.in",
-    },
-    faculty: {
-      title: "Faculty / Staff Login",
-      description: "Access your DSCE Connect faculty account.",
-      email: "faculty@dsce.edu.in",
-    },
-    admin: {
-      title: "Administrator Login",
-      description: "Authorized personnel only.",
-      email: "admin@dsce.edu.in",
-    },
-  };
+const roleInfo = {
+  student: {
+    title: "Student Login",
+    description: "Access your DSCE Connect student account.",
+    placeholder: "student@dsce.edu.in",
+  },
+  faculty: {
+    title: "Faculty / Staff Login",
+    description: "Access your DSCE Connect faculty account.",
+    placeholder: "faculty@dsce.edu.in",
+  },
+  admin: {
+    title: "Administrator Login",
+    description: "Authorized personnel only.",
+    placeholder: "admin@dsce.edu.in",
+  },
+};
+
+export default function LoginPage() {
+  const [role, setRole] = useState<Role>("student");
 
   const currentRole = roleInfo[role];
 
@@ -49,6 +49,7 @@ export default function LoginPage() {
           {/* Login Card */}
           <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-8 shadow-2xl">
 
+            {/* Heading */}
             <div className="mb-8">
               <h1 className="text-3xl font-bold">
                 {currentRole.title}
@@ -86,28 +87,36 @@ export default function LoginPage() {
             </div>
 
             {/* Email */}
-            <label className="block text-sm font-medium text-slate-200">
+            <label
+              htmlFor="email"
+              className="block text-sm font-medium text-slate-200"
+            >
               College Email
             </label>
 
             <input
+              id="email"
               type="email"
-              placeholder={currentRole.email}
-              className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm outline-none transition placeholder:text-slate-600 focus:border-blue-400"
+              placeholder={currentRole.placeholder}
+              className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-blue-400"
             />
 
             {/* Password */}
-            <label className="mt-6 block text-sm font-medium text-slate-200">
+            <label
+              htmlFor="password"
+              className="mt-6 block text-sm font-medium text-slate-200"
+            >
               Password
             </label>
 
             <input
+              id="password"
               type="password"
               placeholder="Enter your password"
-              className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm outline-none transition placeholder:text-slate-600 focus:border-blue-400"
+              className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-blue-400"
             />
 
-            {/* Login */}
+            {/* Login Button */}
             <button
               type="button"
               className="mt-8 w-full rounded-xl bg-blue-500 px-5 py-3.5 font-semibold text-white transition hover:bg-blue-400"
@@ -115,18 +124,17 @@ export default function LoginPage() {
               Sign in
             </button>
 
-            {/* Information */}
+            {/* Information Box */}
             <div className="mt-6 rounded-xl border border-blue-400/10 bg-blue-400/[0.05] p-4">
               <p className="text-xs leading-5 text-slate-400">
-                Use your official DSCE credentials. Authentication will be
-                connected to the secure college account system in the next
-                development stage.
+                Use your official DSCE credentials. Secure authentication
+                will be connected in the next development stage.
               </p>
             </div>
 
           </div>
 
-          {/* Back */}
+          {/* Back to Home */}
           <div className="mt-6 text-center">
             <a
               href="/"
