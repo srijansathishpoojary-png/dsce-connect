@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type Status =
-  | "New"
+  | "Submitted"
   | "Under Review"
   | "Assigned"
   | "In Progress"
@@ -15,69 +15,45 @@ type Ticket = {
   id: string;
   title: string;
   category: string;
-  submittedBy: string;
   location: string;
   priority: Priority;
+  description: string;
   status: Status;
   assignedTo: string;
-  created: string;
+  submitted: string;
+  updated: string;
+  adminNote: string;
 };
 
-const initialTickets: Ticket[] = [
+const sampleTickets: Ticket[] = [
   {
     id: "DSC-2026-00125",
     title: "Projector not working in Room 204",
     category: "Infrastructure",
-    submittedBy: "Student",
     location: "Block A, Room 204",
     priority: "High",
-    status: "New",
-    assignedTo: "Unassigned",
-    created: "Today, 10:42 AM",
+    description:
+      "The projector in Room 204 is not displaying anything during class.",
+    status: "In Progress",
+    assignedTo: "Maintenance",
+    submitted: "Today, 10:42 AM",
+    updated: "Today, 12:15 PM",
+    adminNote:
+      "Maintenance team has been assigned. Technician is checking the projector.",
   },
   {
     id: "DSC-2026-00124",
     title: "Water leakage near Block B",
     category: "Infrastructure",
-    submittedBy: "Faculty",
     location: "Block B, Ground Floor",
     priority: "Emergency",
+    description:
+      "Water leakage has been reported near the ground floor.",
     status: "Under Review",
-    assignedTo: "Maintenance",
-    created: "Today, 9:15 AM",
-  },
-  {
-    id: "DSC-2026-00123",
-    title: "Lost student ID card",
-    category: "Lost & Found",
-    submittedBy: "Student",
-    location: "Main Library",
-    priority: "Medium",
-    status: "Assigned",
-    assignedTo: "Security Office",
-    created: "Today, 8:30 AM",
-  },
-  {
-    id: "DSC-2026-00122",
-    title: "Classroom fan not working",
-    category: "Infrastructure",
-    submittedBy: "Student",
-    location: "Block C, Room 101",
-    priority: "Medium",
-    status: "In Progress",
-    assignedTo: "Maintenance",
-    created: "Yesterday",
-  },
-  {
-    id: "DSC-2026-00121",
-    title: "Issue with examination timetable",
-    category: "Academic",
-    submittedBy: "Student",
-    location: "Academic Section",
-    priority: "High",
-    status: "Resolved",
-    assignedTo: "Academic Office",
-    created: "Yesterday",
+    assignedTo: "Unassigned",
+    submitted: "Today, 9:15 AM",
+    updated: "Today, 9:15 AM",
+    adminNote: "Complaint is currently being reviewed.",
   },
 ];
 
@@ -92,18 +68,87 @@ const authorities = [
 ];
 
 export default function AdminDashboard() {
-  const [tickets, setTickets] = useState<Ticket[]>(initialTickets);
+  const [tickets, setTickets] = useState<Ticket[]>([]);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
+
   const [statusFilter, setStatusFilter] = useState("All");
   const [priorityFilter, setPriorityFilter] = useState("All");
   const [search, setSearch] = useState("");
 
+  /* LOAD TICKETS */
+
+  useEffect(() => {
+    const saved = localStorage.getItem("dsce_complaints");
+
+    if (saved) {
+      try {
+        const studentTickets = JSON.parse(saved) as Ticket[];
+
+        setTickets([...studentTickets, ...sampleTickets]);
+      } catch {
+        setTickets(sampleTickets);
+      }
+    } else {
+      setTickets(sampleTickets);
+    }
+  }, []);
+
+  /* SAVE UPDATED TICKETS */
+
+  function saveTickets(updatedTickets: Ticket[]) {
+    setTickets(updatedTickets);
+
+    const sampleIds = new Set(
+      sampleTickets.map((ticket) => ticket.id)
+    );
+
+    const studentTickets = updatedTickets.filter(
+      (ticket) => !sampleIds.has(ticket.id)
+    );
+
+    localStorage.setItem(
+      "dsce_complaints",
+      JSON.stringify(studentTickets)
+    );
+  }
+
+  /* UPDATE TICKET */
+
+  function updateTicket(
+    ticketId: string,
+    updates: Partial<Ticket>
+  ) {
+    const updatedTickets = tickets.map((ticket) =>
+      ticket.id === ticketId
+        ? {
+            ...ticket,
+            ...updates,
+            updated: new Date().toLocaleString(),
+          }
+        : ticket
+    );
+
+    saveTickets(updatedTickets);
+
+    const updatedTicket = updatedTickets.find(
+      (ticket) => ticket.id === ticketId
+    );
+
+    if (updatedTicket) {
+      setSelectedTicket(updatedTicket);
+    }
+  }
+
+  /* FILTER */
+
   const filteredTickets = tickets.filter((ticket) => {
     const matchesStatus =
-      statusFilter === "All" || ticket.status === statusFilter;
+      statusFilter === "All" ||
+      ticket.status === statusFilter;
 
     const matchesPriority =
-      priorityFilter === "All" || ticket.priority === priorityFilter;
+      priorityFilter === "All" ||
+      ticket.priority === priorityFilter;
 
     const searchText = search.toLowerCase();
 
@@ -112,31 +157,19 @@ export default function AdminDashboard() {
       ticket.title.toLowerCase().includes(searchText) ||
       ticket.category.toLowerCase().includes(searchText);
 
-    return matchesStatus && matchesPriority && matchesSearch;
+    return (
+      matchesStatus &&
+      matchesPriority &&
+      matchesSearch
+    );
   });
-
-  function updateTicket(ticketId: string, updates: Partial<Ticket>) {
-    setTickets((currentTickets) =>
-      currentTickets.map((ticket) =>
-        ticket.id === ticketId
-          ? { ...ticket, ...updates }
-          : ticket
-      )
-    );
-
-    setSelectedTicket((currentTicket) =>
-      currentTicket && currentTicket.id === ticketId
-        ? { ...currentTicket, ...updates }
-        : currentTicket
-    );
-  }
 
   return (
     <main className="min-h-screen bg-slate-950 text-white">
 
       {/* HEADER */}
 
-      <header className="border-b border-white/10 bg-slate-950">
+      <header className="border-b border-white/10">
 
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
 
@@ -149,16 +182,12 @@ export default function AdminDashboard() {
 
           <div className="flex items-center gap-4">
 
-            <button
-              type="button"
-              className="relative rounded-full border border-white/10 px-3 py-2 text-sm hover:bg-white/5"
+            <a
+              href="/login"
+              className="text-sm text-slate-400 hover:text-white"
             >
-              🔔
-
-              <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px]">
-                5
-              </span>
-            </button>
+              Logout
+            </a>
 
             <div className="hidden text-right sm:block">
 
@@ -186,7 +215,7 @@ export default function AdminDashboard() {
 
       <div className="mx-auto max-w-7xl px-6 py-10">
 
-        {/* PAGE TITLE */}
+        {/* TITLE */}
 
         <section className="mb-10">
 
@@ -199,8 +228,8 @@ export default function AdminDashboard() {
           </h1>
 
           <p className="mt-3 max-w-3xl text-slate-400">
-            Review complaints, assign responsible authorities,
-            monitor progress and manage campus issues.
+            Review complaints, assign authorities and monitor
+            campus issues.
           </p>
 
         </section>
@@ -218,7 +247,7 @@ export default function AdminDashboard() {
           <StatCard
             title="New"
             value={tickets.filter(
-              (t) => t.status === "New"
+              (t) => t.status === "Submitted"
             ).length.toString()}
             description="Need review"
           />
@@ -251,7 +280,7 @@ export default function AdminDashboard() {
 
         </section>
 
-        {/* SEARCH AND FILTERS */}
+        {/* FILTERS */}
 
         <section className="mb-6 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
 
@@ -259,14 +288,16 @@ export default function AdminDashboard() {
 
             <div className="lg:col-span-2">
 
-              <label className="text-xs font-medium text-slate-500">
+              <label className="text-xs text-slate-500">
                 Search complaints
               </label>
 
               <input
                 type="text"
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) =>
+                  setSearch(e.target.value)
+                }
                 placeholder="Search by ticket ID, title or category..."
                 className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm outline-none placeholder:text-slate-600 focus:border-blue-400"
               />
@@ -275,41 +306,49 @@ export default function AdminDashboard() {
 
             <div>
 
-              <label className="text-xs font-medium text-slate-500">
+              <label className="text-xs text-slate-500">
                 Status
               </label>
 
               <select
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm outline-none focus:border-blue-400"
+                onChange={(e) =>
+                  setStatusFilter(e.target.value)
+                }
+                className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm outline-none"
               >
+
                 <option>All</option>
-                <option>New</option>
+                <option>Submitted</option>
                 <option>Under Review</option>
                 <option>Assigned</option>
                 <option>In Progress</option>
                 <option>Resolved</option>
+
               </select>
 
             </div>
 
             <div>
 
-              <label className="text-xs font-medium text-slate-500">
+              <label className="text-xs text-slate-500">
                 Priority
               </label>
 
               <select
                 value={priorityFilter}
-                onChange={(e) => setPriorityFilter(e.target.value)}
-                className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm outline-none focus:border-blue-400"
+                onChange={(e) =>
+                  setPriorityFilter(e.target.value)
+                }
+                className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm outline-none"
               >
+
                 <option>All</option>
                 <option>Emergency</option>
                 <option>High</option>
                 <option>Medium</option>
                 <option>Low</option>
+
               </select>
 
             </div>
@@ -331,14 +370,16 @@ export default function AdminDashboard() {
               </h2>
 
               <p className="mt-1 text-sm text-slate-500">
-                Review and manage submitted complaints.
+                Complaints submitted by students and campus users.
               </p>
 
             </div>
 
             <p className="text-sm text-slate-500">
               {filteredTickets.length} result
-              {filteredTickets.length !== 1 ? "s" : ""}
+              {filteredTickets.length !== 1
+                ? "s"
+                : ""}
             </p>
 
           </div>
@@ -350,13 +391,15 @@ export default function AdminDashboard() {
               <button
                 key={ticket.id}
                 type="button"
-                onClick={() => setSelectedTicket(ticket)}
+                onClick={() =>
+                  setSelectedTicket(ticket)
+                }
                 className="block w-full border-b border-white/10 p-5 text-left transition last:border-b-0 hover:bg-white/[0.04]"
               >
 
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
 
-                  <div className="min-w-0">
+                  <div>
 
                     <div className="flex flex-wrap items-center gap-2">
 
@@ -376,15 +419,15 @@ export default function AdminDashboard() {
 
                     <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-500">
 
-                      <span>{ticket.category}</span>
+                      <span>
+                        {ticket.category}
+                      </span>
 
                       <span>•</span>
 
-                      <span>{ticket.submittedBy}</span>
-
-                      <span>•</span>
-
-                      <span>{ticket.location}</span>
+                      <span>
+                        {ticket.location}
+                      </span>
 
                     </div>
 
@@ -404,7 +447,9 @@ export default function AdminDashboard() {
 
                     </div>
 
-                    <StatusBadge status={ticket.status} />
+                    <StatusBadge
+                      status={ticket.status}
+                    />
 
                   </div>
 
@@ -416,14 +461,14 @@ export default function AdminDashboard() {
 
             {filteredTickets.length === 0 && (
 
-              <div className="p-10 text-center">
+              <div className="p-12 text-center">
 
                 <p className="text-lg font-medium">
                   No complaints found
                 </p>
 
                 <p className="mt-2 text-sm text-slate-500">
-                  Try changing your filters or search term.
+                  Try changing the search or filters.
                 </p>
 
               </div>
@@ -436,13 +481,15 @@ export default function AdminDashboard() {
 
       </div>
 
-      {/* TICKET DETAIL MODAL */}
+      {/* DETAIL MODAL */}
 
       {selectedTicket && (
 
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-6 py-10">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-6 py-8">
 
           <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-white/10 bg-slate-950 p-6 shadow-2xl">
+
+            {/* MODAL HEADER */}
 
             <div className="flex items-start justify-between">
 
@@ -460,7 +507,9 @@ export default function AdminDashboard() {
 
               <button
                 type="button"
-                onClick={() => setSelectedTicket(null)}
+                onClick={() =>
+                  setSelectedTicket(null)
+                }
                 className="rounded-lg px-3 py-2 text-slate-400 hover:bg-white/5 hover:text-white"
               >
                 ✕
@@ -478,41 +527,59 @@ export default function AdminDashboard() {
               />
 
               <Detail
-                label="Submitted By"
-                value={selectedTicket.submittedBy}
-              />
-
-              <Detail
                 label="Location"
                 value={selectedTicket.location}
               />
 
               <Detail
-                label="Created"
-                value={selectedTicket.created}
+                label="Priority"
+                value={selectedTicket.priority}
               />
+
+              <Detail
+                label="Submitted"
+                value={selectedTicket.submitted}
+              />
+
+            </div>
+
+            {/* DESCRIPTION */}
+
+            <div className="mt-6 rounded-xl border border-white/10 bg-white/[0.03] p-5">
+
+              <p className="text-xs font-medium text-slate-500">
+                COMPLAINT DESCRIPTION
+              </p>
+
+              <p className="mt-2 text-sm leading-6 text-slate-300">
+                {selectedTicket.description}
+              </p>
 
             </div>
 
             {/* STATUS */}
 
-            <div className="mt-8">
+            <div className="mt-6">
 
               <label className="text-sm font-medium">
-                Update Status
+                Complaint Status
               </label>
 
               <select
                 value={selectedTicket.status}
                 onChange={(e) =>
-                  updateTicket(selectedTicket.id, {
-                    status: e.target.value as Status,
-                  })
+                  updateTicket(
+                    selectedTicket.id,
+                    {
+                      status:
+                        e.target.value as Status,
+                    }
+                  )
                 }
                 className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm outline-none focus:border-blue-400"
               >
 
-                <option>New</option>
+                <option>Submitted</option>
                 <option>Under Review</option>
                 <option>Assigned</option>
                 <option>In Progress</option>
@@ -522,35 +589,54 @@ export default function AdminDashboard() {
 
             </div>
 
-            {/* ASSIGNMENT */}
+            {/* ASSIGN */}
 
             <div className="mt-6">
 
               <label className="text-sm font-medium">
-                Assign To
+                Assign Authority
               </label>
 
               <select
                 value={selectedTicket.assignedTo}
-                onChange={(e) =>
-                  updateTicket(selectedTicket.id, {
-                    assignedTo: e.target.value,
-                    status:
-                      selectedTicket.status === "New"
-                        ? "Assigned"
-                        : selectedTicket.status,
-                  })
-                }
+                onChange={(e) => {
+
+                  const newAuthority =
+                    e.target.value;
+
+                  updateTicket(
+                    selectedTicket.id,
+                    {
+                      assignedTo:
+                        newAuthority,
+                      status:
+                        newAuthority !==
+                          "Unassigned" &&
+                        selectedTicket.status ===
+                          "Submitted"
+                          ? "Assigned"
+                          : selectedTicket.status,
+                    }
+                  );
+
+                }}
                 className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm outline-none focus:border-blue-400"
               >
 
-                <option>Unassigned</option>
+                <option>
+                  Unassigned
+                </option>
 
-                {authorities.map((authority) => (
-                  <option key={authority}>
-                    {authority}
-                  </option>
-                ))}
+                {authorities.map(
+                  (authority) => (
+                    <option
+                      key={authority}
+                      value={authority}
+                    >
+                      {authority}
+                    </option>
+                  )
+                )}
 
               </select>
 
@@ -561,25 +647,51 @@ export default function AdminDashboard() {
             <div className="mt-6">
 
               <label className="text-sm font-medium">
-                Admin Note
+                Admin Update
               </label>
 
               <textarea
+                value={selectedTicket.adminNote}
+                onChange={(e) =>
+                  setSelectedTicket({
+                    ...selectedTicket,
+                    adminNote: e.target.value,
+                  })
+                }
                 rows={4}
-                placeholder="Add an internal note or action taken..."
+                placeholder="Write an update for the student..."
                 className="mt-2 w-full resize-none rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm outline-none placeholder:text-slate-600 focus:border-blue-400"
               />
 
             </div>
 
-            {/* CLOSE */}
+            {/* SAVE NOTE */}
 
             <button
               type="button"
-              onClick={() => setSelectedTicket(null)}
-              className="mt-8 w-full rounded-xl bg-blue-500 px-5 py-3 font-semibold transition hover:bg-blue-400"
+              onClick={() =>
+                updateTicket(
+                  selectedTicket.id,
+                  {
+                    adminNote:
+                      selectedTicket.adminNote,
+                  }
+                )
+              }
+              className="mt-4 w-full rounded-xl bg-blue-500 px-5 py-3 font-semibold transition hover:bg-blue-400"
             >
-              Save & Close
+              Save Admin Update
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                setSelectedTicket(null)
+              }
+              className="mt-3 w-full rounded-xl border border-white/10 px-5 py-3 text-sm font-medium transition hover:bg-white/[0.05]"
+            >
+              Close
+
             </button>
 
           </div>
@@ -636,11 +748,11 @@ function StatusBadge({
       ? "bg-green-500/10 text-green-400"
       : status === "In Progress"
       ? "bg-yellow-500/10 text-yellow-400"
-      : status === "New"
-      ? "bg-red-500/10 text-red-400"
       : status === "Assigned"
       ? "bg-purple-500/10 text-purple-400"
-      : "bg-blue-500/10 text-blue-400";
+      : status === "Under Review"
+      ? "bg-blue-500/10 text-blue-400"
+      : "bg-slate-500/10 text-slate-400";
 
   return (
     <span
