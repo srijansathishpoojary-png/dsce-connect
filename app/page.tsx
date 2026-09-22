@@ -1,556 +1,353 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-[#020d1c] text-white">
-
-      {/* ================= HEADER ================= */}
-
-      <header className="sticky top-0 z-50 border-b border-blue-400/20 bg-[#031326]/95 backdrop-blur-xl">
-
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-
+    <main className="min-h-screen bg-[#020f21] text-white">
+      {/* NAVBAR */}
+      <header className="sticky top-0 z-50 border-b border-slate-800/80 bg-[#020f21]/95 backdrop-blur">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-10">
+          
           {/* LOGO + COLLEGE NAME */}
+          <Link href="/" className="flex items-center gap-4">
+            <div className="relative h-16 w-16 shrink-0">
+              <Image
+                src="/dsce-logo.png"
+                alt="DSCE Logo"
+                fill
+                className="object-contain"
+                priority
+              />
+            </div>
 
-          <div className="flex items-center gap-4">
-
-            <Image
-              src="/dsce-logo.png"
-              alt="Dayananda Sagar College of Engineering"
-              width={68}
-              height={68}
-              className="h-14 w-14 object-contain"
-            />
-
-            <div className="hidden border-r border-white/30 pr-6 sm:block">
-
-              <h1 className="text-sm font-bold leading-tight">
+            <div className="hidden border-r border-slate-600 pr-6 sm:block">
+              <h1 className="text-sm font-bold leading-tight sm:text-base">
                 DAYANANDA SAGAR COLLEGE
                 <br />
                 OF ENGINEERING
               </h1>
 
-              <p className="mt-1 text-[10px] tracking-wider text-slate-400">
-                BANGALORE &nbsp; • &nbsp; ESTD 1979
+              <p className="mt-1 text-xs text-slate-400">
+                BANGALORE&nbsp;&nbsp;•&nbsp;&nbsp; ESTD 1979
               </p>
-
             </div>
 
-            <div className="hidden md:block">
-
-              <span className="text-xl font-bold">
-                DSCE{" "}
-                <span className="text-blue-400">
-                  CONNECT
-                </span>
+            <div className="hidden text-xl font-bold md:block">
+              DSCE{" "}
+              <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
+                CONNECT
               </span>
-
             </div>
-
-          </div>
+          </Link>
 
           {/* NAVIGATION */}
-
-          <nav className="hidden items-center gap-8 lg:flex">
-
+          <nav className="hidden items-center gap-8 md:flex">
             <a
-              href="/"
-              className="border-b-2 border-blue-400 pb-2 text-sm font-medium text-blue-400"
+              href="#home"
+              className="border-b-2 border-blue-400 pb-2 text-blue-400"
             >
               Home
             </a>
 
             <a
               href="#about"
-              className="text-sm text-slate-300 transition hover:text-white"
+              className="text-slate-300 transition hover:text-blue-400"
             >
               About
             </a>
 
             <a
               href="#features"
-              className="text-sm text-slate-300 transition hover:text-white"
+              className="text-slate-300 transition hover:text-blue-400"
             >
               Features
             </a>
 
             <a
               href="#contact"
-              className="text-sm text-slate-300 transition hover:text-white"
+              className="text-slate-300 transition hover:text-blue-400"
             >
               Contact
             </a>
-
           </nav>
 
-          {/* HEADER BUTTONS */}
-
+          {/* BUTTONS */}
           <div className="flex items-center gap-3">
-
-            <a
+            <Link
               href="/login"
-              className="rounded-xl border border-blue-400/60 px-5 py-2.5 text-sm font-medium transition hover:bg-blue-400/10"
+              className="rounded-xl border border-blue-500/70 px-5 py-3 font-semibold transition hover:bg-blue-500/10"
             >
               Login
-            </a>
+            </Link>
 
-            <a
+            <Link
               href="/login"
-              className="hidden rounded-xl bg-gradient-to-r from-blue-500 to-cyan-400 px-5 py-2.5 text-sm font-semibold shadow-lg shadow-blue-500/20 transition hover:scale-105 sm:block"
+              className="rounded-xl bg-gradient-to-r from-blue-500 to-cyan-400 px-5 py-3 font-semibold text-white shadow-lg shadow-blue-500/20 transition hover:scale-105"
             >
               Get Started
-            </a>
-
+            </Link>
           </div>
-
         </div>
-
       </header>
 
-
-      {/* ================= HERO ================= */}
-
-      <section className="relative overflow-hidden">
-
+      {/* HERO */}
+      <section
+        id="home"
+        className="relative overflow-hidden"
+      >
         {/* Background glow */}
+        <div className="absolute left-0 top-20 h-96 w-96 rounded-full bg-blue-600/10 blur-3xl" />
+        <div className="absolute right-0 top-32 h-96 w-96 rounded-full bg-cyan-400/10 blur-3xl" />
 
-        <div className="absolute left-0 top-20 h-96 w-96 rounded-full bg-blue-600/20 blur-[120px]" />
+        <div className="relative mx-auto grid min-h-[calc(100vh-90px)] max-w-7xl items-center gap-14 px-6 py-20 lg:grid-cols-2 lg:px-10">
+          
+          {/* LEFT SIDE */}
+          <div>
+            <div className="mb-6 flex items-center gap-4 lg:hidden">
+              <div className="relative h-20 w-20">
+                <Image
+                  src="/dsce-logo.png"
+                  alt="DSCE Logo"
+                  fill
+                  className="object-contain"
+                />
+              </div>
+            </div>
 
-        <div className="absolute right-0 top-40 h-96 w-96 rounded-full bg-cyan-500/10 blur-[120px]" />
-
-        <div className="mx-auto grid min-h-[650px] max-w-7xl items-center gap-12 px-6 py-20 lg:grid-cols-2">
-
-          {/* LEFT */}
-
-          <div className="relative z-10">
-
-            <Image
-              src="/dsce-logo.png"
-              alt="DSCE Logo"
-              width={150}
-              height={150}
-              className="mb-8 h-28 w-28 object-contain sm:h-36 sm:w-36"
-            />
-
-            <p className="mb-3 text-sm font-semibold tracking-[0.25em] text-blue-400">
-              DAYANANDA SAGAR COLLEGE OF ENGINEERING
+            <p className="mb-4 text-sm font-bold uppercase tracking-[0.3em] text-blue-400">
+              Dayananda Sagar College of Engineering
             </p>
 
-            <h2 className="text-5xl font-extrabold leading-[1.05] sm:text-6xl lg:text-7xl">
-
-              DSCE{" "}
-
-              <span className="bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent">
-                CONNECT
-              </span>
-
+            <h2 className="text-6xl font-black leading-none sm:text-7xl">
+              DSCE
             </h2>
 
-            <h3 className="mt-6 text-2xl font-bold sm:text-3xl">
-
-              One Campus. One{" "}
-
-              <span className="text-blue-400">
-                Connected
-              </span>{" "}
-
-              Platform.
-
+            <h3 className="mt-2 bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-500 bg-clip-text text-6xl font-black leading-none text-transparent sm:text-7xl">
+              CONNECT
             </h3>
 
+            <h4 className="mt-8 text-2xl font-bold leading-tight sm:text-3xl">
+              One Campus. One{" "}
+              <span className="text-blue-400">Connected</span> Platform.
+            </h4>
+
             <p className="mt-6 max-w-xl text-lg leading-8 text-slate-300">
-
-              Report campus issues. Track complaints.
-              Connect students, faculty and administration
-              through one simple platform.
-
+              Report campus issues, track complaints, connect with faculty,
+              communicate with administration and stay connected with your
+              campus through one simple platform.
             </p>
 
-            {/* HERO BUTTONS */}
-
-            <div className="mt-8 flex flex-wrap gap-4">
-
-              <a
+            {/* CTA BUTTONS */}
+            <div className="mt-10 flex flex-wrap gap-4">
+              <Link
                 href="/complaint"
-                className="rounded-xl bg-gradient-to-r from-blue-500 to-cyan-400 px-7 py-4 font-semibold shadow-xl shadow-blue-500/20 transition hover:-translate-y-1"
+                className="rounded-xl bg-gradient-to-r from-blue-500 to-cyan-400 px-7 py-4 font-bold shadow-xl shadow-blue-500/20 transition hover:scale-105"
               >
                 🚀 Report a Problem
-              </a>
+              </Link>
 
-              <a
+              <Link
                 href="/login"
-                className="rounded-xl border border-blue-400/60 px-7 py-4 font-semibold transition hover:bg-blue-400/10"
+                className="rounded-xl border border-blue-500 px-7 py-4 font-bold transition hover:bg-blue-500/10"
               >
                 → Login
-              </a>
-
+              </Link>
             </div>
 
-          </div>
-
-
-          {/* RIGHT VISUAL */}
-
-          <div className="relative">
-
-            <div className="absolute -inset-5 rounded-[3rem] bg-blue-500/10 blur-3xl" />
-
-            <div className="relative overflow-hidden rounded-[2rem] border border-blue-400/30 bg-gradient-to-br from-blue-950 to-slate-900 p-2 shadow-2xl shadow-blue-900/40">
-
-              <div className="flex min-h-[430px] items-center justify-center rounded-[1.6rem] bg-gradient-to-br from-blue-900/80 via-[#06172b] to-[#020b18]">
-
-                <div className="text-center">
-
-                  <Image
-                    src="/dsce-logo.png"
-                    alt="DSCE"
-                    width={220}
-                    height={220}
-                    className="mx-auto h-48 w-48 object-contain drop-shadow-[0_0_35px_rgba(59,130,246,0.35)]"
-                  />
-
-                  <p className="mt-5 text-xl font-semibold">
-                    A Better Connected Campus
-                  </p>
-
-                  <p className="mt-2 text-sm text-slate-400">
-                    Students • Faculty • Administration
-                  </p>
-
-                </div>
-
+            {/* SMALL STATS */}
+            <div className="mt-12 flex flex-wrap gap-8">
+              <div>
+                <p className="text-3xl font-bold text-blue-400">24/7</p>
+                <p className="text-sm text-slate-400">
+                  Campus Access
+                </p>
               </div>
-
-            </div>
-
-          </div>
-
-        </div>
-
-      </section>
-
-
-      {/* ================= FEATURES ================= */}
-
-      <section
-        id="features"
-        className="border-y border-blue-400/10 bg-[#031326]/80 py-20"
-      >
-
-        <div className="mx-auto max-w-7xl px-6">
-
-          <div className="mb-12 text-center">
-
-            <p className="text-sm font-semibold tracking-[0.2em] text-blue-400">
-              EVERYTHING CONNECTED
-            </p>
-
-            <h2 className="mt-3 text-3xl font-bold sm:text-4xl">
-              Built for a Better Campus
-            </h2>
-
-            <p className="mx-auto mt-4 max-w-2xl text-slate-400">
-              One platform for reporting problems, tracking
-              progress and connecting the entire DSCE community.
-            </p>
-
-          </div>
-
-
-          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-
-            <FeatureCard
-              icon="📋"
-              title="Report Issues"
-              description="Quickly submit complaints about campus facilities, academic concerns or other problems."
-            />
-
-            <FeatureCard
-              icon="🔎"
-              title="Track Progress"
-              description="Get updates on your complaints and see the current status at every stage."
-            />
-
-            <FeatureCard
-              icon="👥"
-              title="Connect Community"
-              description="Bring together students, faculty and administration for a better campus."
-            />
-
-            <FeatureCard
-              icon="🛡️"
-              title="Better Campus"
-              description="Work together to create a safer, cleaner and more connected DSCE."
-            />
-
-          </div>
-
-        </div>
-
-      </section>
-
-
-      {/* ================= STATS ================= */}
-
-      <section className="border-b border-blue-400/10 py-16">
-
-        <div className="mx-auto grid max-w-6xl gap-10 px-6 sm:grid-cols-2 lg:grid-cols-4">
-
-          <Stat
-            number="3000+"
-            label="Students"
-            icon="👥"
-          />
-
-          <Stat
-            number="200+"
-            label="Faculty Members"
-            icon="🎓"
-          />
-
-          <Stat
-            number="50+"
-            label="Administration Staff"
-            icon="🏢"
-          />
-
-          <Stat
-            number="1"
-            label="DSCE Family"
-            icon="⭐"
-          />
-
-        </div>
-
-      </section>
-
-
-      {/* ================= ABOUT ================= */}
-
-      <section
-        id="about"
-        className="relative overflow-hidden py-24"
-      >
-
-        <div className="mx-auto grid max-w-7xl items-center gap-16 px-6 lg:grid-cols-2">
-
-          <div>
-
-            <p className="text-sm font-semibold tracking-[0.2em] text-blue-400">
-              DAYANANDA SAGAR COLLEGE OF ENGINEERING
-            </p>
-
-            <h2 className="mt-4 text-4xl font-extrabold leading-tight sm:text-5xl">
-
-              A Connected Campus
-              <br />
-
-              for a{" "}
-
-              <span className="text-blue-400">
-                Brighter Future
-              </span>
-
-            </h2>
-
-            <p className="mt-6 max-w-xl text-lg leading-8 text-slate-400">
-
-              DSCE Connect is more than just a platform.
-              It is a bridge that keeps our campus community
-              connected, informed and empowered.
-
-            </p>
-
-
-            <div className="mt-10 grid grid-cols-2 gap-4">
-
-              <MiniFeature
-                icon="🎓"
-                text="Quality Education"
-              />
-
-              <MiniFeature
-                icon="💡"
-                text="Innovation"
-              />
-
-              <MiniFeature
-                icon="👥"
-                text="Community"
-              />
-
-              <MiniFeature
-                icon="🌱"
-                text="Sustainability"
-              />
-
-            </div>
-
-          </div>
-
-
-          <div className="relative">
-
-            <div className="absolute -inset-5 rounded-[3rem] bg-blue-500/10 blur-3xl" />
-
-            <div className="relative flex min-h-[350px] items-center justify-center overflow-hidden rounded-[2rem] border border-blue-400/20 bg-gradient-to-br from-blue-950 to-slate-900">
-
-              <Image
-                src="/dsce-logo.png"
-                alt="DSCE Campus"
-                width={280}
-                height={280}
-                className="h-64 w-64 object-contain opacity-90"
-              />
-
-            </div>
-
-          </div>
-
-        </div>
-
-      </section>
-
-
-      {/* ================= CTA ================= */}
-
-      <section className="px-6 pb-24">
-
-        <div className="mx-auto max-w-5xl overflow-hidden rounded-3xl border border-blue-400/20 bg-gradient-to-r from-blue-950 to-cyan-950/40 px-6 py-14 text-center shadow-2xl shadow-blue-950/30 sm:px-12">
-
-          <p className="text-sm font-semibold tracking-[0.2em] text-blue-400">
-            YOUR CAMPUS. YOUR VOICE.
-          </p>
-
-          <h2 className="mt-4 text-3xl font-bold sm:text-4xl">
-            Help Make DSCE Better
-          </h2>
-
-          <p className="mx-auto mt-4 max-w-2xl text-slate-400">
-            See something that needs attention?
-            Report it and help us build a better campus together.
-          </p>
-
-          <div className="mt-8 flex flex-wrap justify-center gap-4">
-
-            <a
-              href="/complaint"
-              className="rounded-xl bg-blue-500 px-7 py-3.5 font-semibold transition hover:bg-blue-400"
-            >
-              Report a Problem
-            </a>
-
-            <a
-              href="/login"
-              className="rounded-xl border border-white/20 px-7 py-3.5 font-semibold transition hover:bg-white/10"
-            >
-              Login to DSCE Connect
-            </a>
-
-          </div>
-
-        </div>
-
-      </section>
-
-
-      {/* ================= FOOTER ================= */}
-
-      <footer
-        id="contact"
-        className="border-t border-blue-400/10 bg-[#010a15]"
-      >
-
-        <div className="mx-auto max-w-7xl px-6 py-12">
-
-          <div className="flex flex-col items-center justify-between gap-8 md:flex-row">
-
-            <div className="flex items-center gap-4">
-
-              <Image
-                src="/dsce-logo.png"
-                alt="DSCE"
-                width={70}
-                height={70}
-                className="h-14 w-14 object-contain"
-              />
 
               <div>
-
-                <p className="font-bold">
-                  DSCE{" "}
-                  <span className="text-blue-400">
-                    CONNECT
-                  </span>
+                <p className="text-3xl font-bold text-cyan-400">3</p>
+                <p className="text-sm text-slate-400">
+                  User Roles
                 </p>
-
-                <p className="mt-1 text-xs text-slate-500">
-                  One Campus. One Connected Platform.
-                </p>
-
               </div>
 
+              <div>
+                <p className="text-3xl font-bold text-blue-400">1</p>
+                <p className="text-sm text-slate-400">
+                  Connected Platform
+                </p>
+              </div>
             </div>
+          </div>
 
+          {/* RIGHT SIDE CARD */}
+          <div className="relative">
+            <div className="rounded-[2rem] border border-blue-500/40 bg-gradient-to-br from-blue-900/50 to-slate-950/80 p-3 shadow-2xl shadow-blue-500/10">
+              <div className="flex min-h-[480px] flex-col items-center justify-center rounded-[1.6rem] border border-blue-400/20 bg-[#06172d] p-10 text-center">
+                
+                {/* LOGO */}
+                <div className="relative mb-8 h-40 w-40">
+                  <Image
+                    src="/dsce-logo.png"
+                    alt="DSCE Logo"
+                    fill
+                    className="object-contain drop-shadow-2xl"
+                    priority
+                  />
+                </div>
 
-            <div className="flex gap-7 text-sm text-slate-400">
+                <h3 className="text-3xl font-bold">
+                  A Better Connected Campus
+                </h3>
 
-              <a
-                href="/"
-                className="transition hover:text-white"
-              >
-                Home
-              </a>
+                <p className="mt-4 text-slate-400">
+                  Students • Faculty • Administration
+                </p>
 
-              <a
-                href="#about"
-                className="transition hover:text-white"
-              >
-                About
-              </a>
+                <div className="mt-8 grid w-full max-w-md grid-cols-3 gap-3">
+                  <div className="rounded-xl border border-blue-500/20 bg-blue-500/10 p-4">
+                    <div className="text-2xl">🎓</div>
+                    <p className="mt-2 text-sm font-semibold">
+                      Students
+                    </p>
+                  </div>
 
-              <a
-                href="#features"
-                className="transition hover:text-white"
-              >
-                Features
-              </a>
+                  <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/10 p-4">
+                    <div className="text-2xl">👨‍🏫</div>
+                    <p className="mt-2 text-sm font-semibold">
+                      Faculty
+                    </p>
+                  </div>
 
-              <a
-                href="#contact"
-                className="transition hover:text-white"
-              >
-                Contact
-              </a>
-
+                  <div className="rounded-xl border border-blue-500/20 bg-blue-500/10 p-4">
+                    <div className="text-2xl">🏢</div>
+                    <p className="mt-2 text-sm font-semibold">
+                      Admin
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
+          </div>
+        </div>
+      </section>
 
-            <p className="text-sm text-slate-400">
-              ♡ Together for a Better Campus
+      {/* ABOUT */}
+      <section
+        id="about"
+        className="border-t border-slate-800 bg-[#031426] px-6 py-24"
+      >
+        <div className="mx-auto max-w-7xl">
+          <div className="max-w-3xl">
+            <p className="font-bold uppercase tracking-[0.25em] text-blue-400">
+              About DSCE Connect
             </p>
 
+            <h2 className="mt-4 text-4xl font-black sm:text-5xl">
+              Making campus communication{" "}
+              <span className="text-blue-400">simpler.</span>
+            </h2>
+
+            <p className="mt-6 text-lg leading-8 text-slate-300">
+              DSCE Connect provides a central platform where students,
+              faculty and administration can communicate, report problems,
+              track complaints and manage campus-related activities.
+            </p>
           </div>
-
-          <div className="mt-10 border-t border-white/5 pt-6 text-center text-xs text-slate-600">
-
-            © 2026 DSCE Connect. Dayananda Sagar College
-            of Engineering, Bangalore.
-
-          </div>
-
         </div>
+      </section>
 
+      {/* FEATURES */}
+      <section
+        id="features"
+        className="border-t border-slate-800 px-6 py-24"
+      >
+        <div className="mx-auto max-w-7xl">
+          <div className="text-center">
+            <p className="font-bold uppercase tracking-[0.25em] text-blue-400">
+              Platform Features
+            </p>
+
+            <h2 className="mt-4 text-4xl font-black sm:text-5xl">
+              Everything connected in one place
+            </h2>
+          </div>
+
+          <div className="mt-14 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            
+            <FeatureCard
+              icon="📝"
+              title="Report Complaints"
+              description="Students can easily report campus problems and submit complaints."
+            />
+
+            <FeatureCard
+              icon="🎫"
+              title="Track Tickets"
+              description="Track complaint status and follow the progress of submitted issues."
+            />
+
+            <FeatureCard
+              icon="👨‍🏫"
+              title="Faculty Portal"
+              description="Faculty members can view and manage relevant campus issues."
+            />
+
+            <FeatureCard
+              icon="⚙️"
+              title="Admin Control"
+              description="Administration can monitor complaints and manage the platform."
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* CONTACT */}
+      <section
+        id="contact"
+        className="border-t border-slate-800 bg-[#031426] px-6 py-20"
+      >
+        <div className="mx-auto max-w-7xl text-center">
+          <p className="font-bold uppercase tracking-[0.25em] text-blue-400">
+            Contact
+          </p>
+
+          <h2 className="mt-4 text-4xl font-black">
+            Stay connected with DSCE
+          </h2>
+
+          <p className="mx-auto mt-5 max-w-2xl text-slate-400">
+            DSCE Connect is designed to make communication between students,
+            faculty and administration easier and more efficient.
+          </p>
+
+          <Link
+            href="/login"
+            className="mt-8 inline-block rounded-xl bg-gradient-to-r from-blue-500 to-cyan-400 px-8 py-4 font-bold transition hover:scale-105"
+          >
+            Get Started →
+          </Link>
+        </div>
+      </section>
+
+      {/* FOOTER */}
+      <footer className="border-t border-slate-800 px-6 py-8">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 text-center text-sm text-slate-500 md:flex-row">
+          <p>
+            © 2026 DSCE Connect. Dayananda Sagar College of Engineering.
+          </p>
+
+          <p>
+            One Campus. One Connected Platform.
+          </p>
+        </div>
       </footer>
-
     </main>
   );
 }
 
-
-/* ================= COMPONENTS ================= */
-
+/* FEATURE CARD */
 function FeatureCard({
   icon,
   title,
@@ -561,9 +358,8 @@ function FeatureCard({
   description: string;
 }) {
   return (
-    <div className="group rounded-2xl border border-blue-400/20 bg-gradient-to-br from-blue-950/50 to-slate-950/50 p-6 transition duration-300 hover:-translate-y-2 hover:border-blue-400/50 hover:shadow-xl hover:shadow-blue-950/30">
-
-      <div className="flex h-14 w-14 items-center justify-center rounded-xl border border-blue-400/20 bg-blue-500/10 text-2xl transition group-hover:bg-blue-500/20">
+    <div className="group rounded-2xl border border-slate-800 bg-[#06172d] p-7 transition duration-300 hover:-translate-y-2 hover:border-blue-500/50 hover:shadow-xl hover:shadow-blue-500/10">
+      <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-blue-500/10 text-2xl">
         {icon}
       </div>
 
@@ -571,66 +367,9 @@ function FeatureCard({
         {title}
       </h3>
 
-      <p className="mt-3 text-sm leading-6 text-slate-400">
+      <p className="mt-3 leading-7 text-slate-400">
         {description}
       </p>
-
-      <div className="mt-5 text-2xl text-blue-400 transition group-hover:translate-x-2">
-        →
-      </div>
-
-    </div>
-  );
-}
-
-
-function Stat({
-  number,
-  label,
-  icon,
-}: {
-  number: string;
-  label: string;
-  icon: string;
-}) {
-  return (
-    <div className="text-center">
-
-      <div className="text-2xl">
-        {icon}
-      </div>
-
-      <p className="mt-3 text-3xl font-extrabold text-white">
-        {number}
-      </p>
-
-      <p className="mt-1 text-sm text-slate-500">
-        {label}
-      </p>
-
-    </div>
-  );
-}
-
-
-function MiniFeature({
-  icon,
-  text,
-}: {
-  icon: string;
-  text: string;
-}) {
-  return (
-    <div className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/[0.02] p-4">
-
-      <span className="text-xl">
-        {icon}
-      </span>
-
-      <span className="text-sm text-slate-300">
-        {text}
-      </span>
-
     </div>
   );
 }
