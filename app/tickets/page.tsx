@@ -1,41 +1,43 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-type TicketStatus =
+type Status =
   | "Submitted"
   | "Under Review"
   | "Assigned"
   | "In Progress"
   | "Resolved";
 
+type Priority = "Low" | "Medium" | "High" | "Emergency";
+
 type Ticket = {
   id: string;
   title: string;
   category: string;
   location: string;
-  priority: "Low" | "Medium" | "High" | "Emergency";
-  status: TicketStatus;
+  priority: Priority;
+  description: string;
+  status: Status;
   assignedTo: string;
   submitted: string;
   updated: string;
-  description: string;
   adminNote: string;
 };
 
-const tickets: Ticket[] = [
+const sampleTickets: Ticket[] = [
   {
     id: "DSC-2026-00125",
     title: "Projector not working in Room 204",
     category: "Infrastructure",
     location: "Block A, Room 204",
     priority: "High",
+    description:
+      "The projector in Room 204 is not displaying anything during class.",
     status: "In Progress",
     assignedTo: "Maintenance",
     submitted: "Today, 10:42 AM",
     updated: "Today, 12:15 PM",
-    description:
-      "The projector in Room 204 is not displaying anything during class.",
     adminNote:
       "Maintenance team has been assigned. Technician is checking the projector.",
   },
@@ -45,12 +47,12 @@ const tickets: Ticket[] = [
     category: "Lost & Found",
     location: "Main Library",
     priority: "Medium",
+    description:
+      "Student ID card was misplaced near the main library.",
     status: "Under Review",
     assignedTo: "Security Office",
     submitted: "Yesterday, 2:30 PM",
     updated: "Yesterday, 4:10 PM",
-    description:
-      "Student ID card was misplaced near the main library.",
     adminNote:
       "Security office is checking the lost and found register.",
   },
@@ -60,29 +62,86 @@ const tickets: Ticket[] = [
     category: "Infrastructure",
     location: "Block C, Room 101",
     priority: "Low",
+    description:
+      "One of the ceiling fans in the classroom was not working.",
     status: "Resolved",
     assignedTo: "Maintenance",
     submitted: "2 days ago",
     updated: "Yesterday",
-    description:
-      "One of the ceiling fans in the classroom was not working.",
     adminNote:
       "Fan has been repaired and the complaint has been marked resolved.",
   },
 ];
 
-const statusSteps: TicketStatus[] = [
-  "Submitted",
-  "Under Review",
-  "Assigned",
-  "In Progress",
-  "Resolved",
-];
-
 export default function StudentTicketsPage() {
-  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(
-    tickets[0]
-  );
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [selectedTicket, setSelectedTicket] =
+    useState<Ticket | null>(null);
+
+  useEffect(() => {
+    loadTickets();
+
+    function handleStorageChange() {
+      loadTickets();
+    }
+
+    window.addEventListener(
+      "storage",
+      handleStorageChange
+    );
+
+    return () => {
+      window.removeEventListener(
+        "storage",
+        handleStorageChange
+      );
+    };
+  }, []);
+
+  function loadTickets() {
+    const saved = localStorage.getItem("dsce_complaints");
+
+    if (saved) {
+      try {
+        const studentTickets = JSON.parse(saved) as Ticket[];
+
+        const combinedTickets = [
+          ...studentTickets,
+          ...sampleTickets.filter(
+            (sample) =>
+              !studentTickets.some(
+                (student) =>
+                  student.id === sample.id
+              )
+          ),
+        ];
+
+        setTickets(combinedTickets);
+
+        if (combinedTickets.length > 0) {
+          setSelectedTicket((current) => {
+            if (!current) {
+              return combinedTickets[0];
+            }
+
+            return (
+              combinedTickets.find(
+                (ticket) =>
+                  ticket.id === current.id
+              ) || combinedTickets[0]
+            );
+          });
+        }
+
+      } catch {
+        setTickets(sampleTickets);
+        setSelectedTicket(sampleTickets[0]);
+      }
+    } else {
+      setTickets(sampleTickets);
+      setSelectedTicket(sampleTickets[0]);
+    }
+  }
 
   return (
     <main className="min-h-screen bg-slate-950 text-white">
@@ -97,7 +156,9 @@ export default function StudentTicketsPage() {
             href="/"
             className="text-xl font-bold tracking-tight"
           >
-            DSCE<span className="text-blue-400">CONNECT</span>
+            DSCE<span className="text-blue-400">
+              CONNECT
+            </span>
           </a>
 
           <div className="flex items-center gap-4">
@@ -136,16 +197,17 @@ export default function StudentTicketsPage() {
           </h1>
 
           <p className="mt-3 text-slate-400">
-            Track your submitted complaints and view the latest updates.
+            Track your submitted complaints and view
+            the latest updates from the administration.
           </p>
 
         </section>
 
-        {/* CONTENT */}
+        {/* TICKETS */}
 
         <div className="grid gap-6 lg:grid-cols-[350px_1fr]">
 
-          {/* TICKET LIST */}
+          {/* LEFT SIDE */}
 
           <section>
 
@@ -168,7 +230,9 @@ export default function StudentTicketsPage() {
                 <button
                   key={ticket.id}
                   type="button"
-                  onClick={() => setSelectedTicket(ticket)}
+                  onClick={() =>
+                    setSelectedTicket(ticket)
+                  }
                   className={`w-full rounded-2xl border p-5 text-left transition ${
                     selectedTicket?.id === ticket.id
                       ? "border-blue-400/50 bg-blue-400/[0.06]"
@@ -196,7 +260,7 @@ export default function StudentTicketsPage() {
 
                   </div>
 
-                  <div className="mt-4 flex items-center justify-between">
+                  <div className="mt-4 flex items-center justify-between gap-2">
 
                     <span className="text-xs text-slate-500">
                       {ticket.category}
@@ -223,13 +287,13 @@ export default function StudentTicketsPage() {
 
           </section>
 
-          {/* TICKET DETAILS */}
+          {/* RIGHT SIDE */}
 
           {selectedTicket && (
 
             <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 sm:p-8">
 
-              {/* Ticket heading */}
+              {/* HEADER */}
 
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
 
@@ -255,7 +319,7 @@ export default function StudentTicketsPage() {
 
               </div>
 
-              {/* STATUS TIMELINE */}
+              {/* STATUS */}
 
               <div className="mt-10">
 
@@ -265,75 +329,9 @@ export default function StudentTicketsPage() {
 
                 <div className="mt-6">
 
-                  {statusSteps.map((step, index) => {
-
-                    const currentIndex =
-                      statusSteps.indexOf(selectedTicket.status);
-
-                    const completed = index <= currentIndex;
-
-                    const isCurrent =
-                      step === selectedTicket.status;
-
-                    return (
-                      <div
-                        key={step}
-                        className="flex"
-                      >
-
-                        {/* Timeline line */}
-
-                        <div className="mr-4 flex flex-col items-center">
-
-                          <div
-                            className={`flex h-8 w-8 items-center justify-center rounded-full border text-xs font-semibold ${
-                              completed
-                                ? "border-blue-400 bg-blue-500 text-white"
-                                : "border-white/10 bg-slate-900 text-slate-600"
-                            }`}
-                          >
-                            {completed ? "✓" : index + 1}
-                          </div>
-
-                          {index < statusSteps.length - 1 && (
-                            <div
-                              className={`h-10 w-px ${
-                                index < currentIndex
-                                  ? "bg-blue-400"
-                                  : "bg-white/10"
-                              }`}
-                            />
-                          )}
-
-                        </div>
-
-                        {/* Step text */}
-
-                        <div className="pb-8">
-
-                          <p
-                            className={`text-sm font-medium ${
-                              isCurrent
-                                ? "text-blue-400"
-                                : completed
-                                ? "text-white"
-                                : "text-slate-600"
-                            }`}
-                          >
-                            {step}
-                          </p>
-
-                          {isCurrent && (
-                            <p className="mt-1 text-xs text-slate-500">
-                              Current status
-                            </p>
-                          )}
-
-                        </div>
-
-                      </div>
-                    );
-                  })}
+                  <StatusTimeline
+                    status={selectedTicket.status}
+                  />
 
                 </div>
 
@@ -388,8 +386,27 @@ export default function StudentTicketsPage() {
                 </p>
 
                 <p className="mt-2 text-sm leading-6 text-slate-300">
-                  {selectedTicket.adminNote}
+                  {selectedTicket.adminNote ||
+                    "No update has been added yet."}
                 </p>
+
+              </div>
+
+              {/* TICKET INFO */}
+
+              <div className="mt-6 flex flex-wrap gap-3">
+
+                <StatusBadge
+                  status={selectedTicket.status}
+                />
+
+                <PriorityBadge
+                  priority={selectedTicket.priority}
+                />
+
+                <span className="rounded-full bg-white/5 px-3 py-1.5 text-xs text-slate-400">
+                  {selectedTicket.assignedTo}
+                </span>
 
               </div>
 
@@ -406,12 +423,98 @@ export default function StudentTicketsPage() {
 }
 
 
+/* STATUS TIMELINE */
+
+function StatusTimeline({
+  status,
+}: {
+  status: Status;
+}) {
+  const steps: Status[] = [
+    "Submitted",
+    "Under Review",
+    "Assigned",
+    "In Progress",
+    "Resolved",
+  ];
+
+  const currentIndex = steps.indexOf(status);
+
+  return (
+    <div>
+
+      {steps.map((step, index) => {
+
+        const completed = index <= currentIndex;
+        const current = index === currentIndex;
+
+        return (
+          <div
+            key={step}
+            className="flex"
+          >
+
+            <div className="mr-4 flex flex-col items-center">
+
+              <div
+                className={`flex h-8 w-8 items-center justify-center rounded-full border text-xs font-semibold ${
+                  completed
+                    ? "border-blue-400 bg-blue-500 text-white"
+                    : "border-white/10 bg-slate-900 text-slate-600"
+                }`}
+              >
+                {completed ? "✓" : index + 1}
+              </div>
+
+              {index < steps.length - 1 && (
+                <div
+                  className={`h-10 w-px ${
+                    index < currentIndex
+                      ? "bg-blue-400"
+                      : "bg-white/10"
+                  }`}
+                />
+              )}
+
+            </div>
+
+            <div className="pb-8">
+
+              <p
+                className={`text-sm font-medium ${
+                  current
+                    ? "text-blue-400"
+                    : completed
+                    ? "text-white"
+                    : "text-slate-600"
+                }`}
+              >
+                {step}
+              </p>
+
+              {current && (
+                <p className="mt-1 text-xs text-slate-500">
+                  Current status
+                </p>
+              )}
+
+            </div>
+
+          </div>
+        );
+      })}
+
+    </div>
+  );
+}
+
+
 /* STATUS BADGE */
 
 function StatusBadge({
   status,
 }: {
-  status: TicketStatus;
+  status: Status;
 }) {
   const style =
     status === "Resolved"
@@ -439,7 +542,7 @@ function StatusBadge({
 function PriorityBadge({
   priority,
 }: {
-  priority: Ticket["priority"];
+  priority: Priority;
 }) {
   const style =
     priority === "Emergency"
@@ -460,7 +563,7 @@ function PriorityBadge({
 }
 
 
-/* INFO BOX */
+/* INFORMATION BOX */
 
 function InfoBox({
   label,
