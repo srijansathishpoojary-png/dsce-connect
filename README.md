@@ -1,36 +1,173 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# DSCE Connect
 
-## Getting Started
+## One Campus. One Connected Platform.
 
-First, run the development server:
+DSCE Connect is a campus communication and complaint management platform designed for **Dayananda Sagar College of Engineering (DSCE)**.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+The platform connects **students, faculty, and administration** through a single web application where users can report campus issues, track complaints, and manage campus-related activities.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+##  Project Overview
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+DSCE Connect aims to make communication within the campus simpler, faster, and more organized.
 
-## Learn More
+The application provides separate interfaces for different users:
 
-To learn more about Next.js, take a look at the following resources:
+-  Students
+-  Faculty
+-  Administration
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Students can submit complaints and track their status, while faculty and administrators can manage and monitor campus-related issues.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+##  Features
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+###  Home Page
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The DSCE Connect landing page provides:
+
+- DSCE branding and logo
+- Introduction to DSCE Connect
+- Navigation menu
+- Login and Get Started buttons
+- Complaint reporting shortcut
+- Platform feature overview
+- Student, Faculty and Admin information
+
+---
+
+###  Login
+
+Users can access the platform through the login page.
+
+The system supports different user roles:
+
+- Student
+- Faculty
+- Admin
+
+After successful login, users are directed to their respective dashboards.
+
+---
+
+###  Student Dashboard
+
+The student dashboard allows students to:
+
+- View their dashboard
+- Submit complaints
+- Track submitted complaints
+- View complaint/ticket information
+- Monitor complaint status
+- Access campus-related information
+
+---
+
+###  Faculty Dashboard
+
+The faculty dashboard provides faculty members with access to:
+
+- Faculty dashboard
+- Relevant complaints
+- Ticket information
+- Campus issue management
+- Complaint status information
+
+---
+
+###  Admin Dashboard
+
+The administration dashboard is intended to provide centralized control over the platform.
+
+Administrators can:
+
+- Monitor complaints
+- View tickets
+- Manage campus issues
+- Track complaint status
+- Monitor platform activity
+
+---
+
+###  Complaint System
+
+Students can report campus problems through the complaint system.
+
+A complaint can contain information such as:
+
+- Complaint title
+- Description
+- Category
+- Status
+- Submitted information
+
+Complaints can then be tracked through the ticket system.
+
+---
+
+###  Ticket System
+
+The ticket system is used to organize and track complaints.
+
+It helps users understand the current status of an issue and provides a centralized view of submitted complaints.
+
+---
+
+##  Project Structure
+
+The project uses the Next.js App Router structure.
+
+```text
+dsce-connect/
+│
+├── app/
+│   │
+│   ├── page.tsx
+│   │       └── DSCE Connect Home Page
+│   │
+│   ├── layout.tsx
+│   │       └── Root Layout
+│   │
+│   ├── globals.css
+│   │       └── Global Styles
+│   │
+│   ├── login/
+│   │   └── page.tsx
+│   │       └── Login Page
+│   │
+│   ├── student/
+│   │   └── page.tsx
+│   │       └── Student Dashboard
+│   │
+│   ├── faculty/
+│   │   └── page.tsx
+│   │       └── Faculty Dashboard
+│   │
+│   ├── admin/
+│   │   └── page.tsx
+│   │       └── Admin Dashboard
+│   │
+│   ├── complaint/
+│   │   └── page.tsx
+│   │       └── Complaint Page
+│   │
+│   └── tickets/
+│       └── page.tsx
+│           └── Ticket Management Page
+│
+├── public/
+│   └── dsce-logo.png
+│           └── DSCE Logo
+│
+├── node_modules/
+│
+├── package.json
+├── package-lock.json
+├── next.config.ts
+├── next-env.d.ts
+├── postcss.config.mjs
+├── tsconfig.json
+├── eslint.config.mjs
+└── README.md
