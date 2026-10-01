@@ -1,209 +1,502 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-type Status =
-  | "Submitted"
-  | "Under Review"
-  | "Assigned"
-  | "In Progress"
-  | "Resolved";
+type UserType = "student" | "faculty";
 
-type Priority = "Low" | "Medium" | "High" | "Emergency";
-
-type Ticket = {
+type Complaint = {
   id: string;
+  complainantType: UserType;
+  complainantName: string;
+  complainantId: string;
   title: string;
   category: string;
-  location: string;
-  priority: Priority;
   description: string;
-  status: Status;
-  assignedTo: string;
-  submitted: string;
-  updated: string;
-  adminNote: string;
+  location: string;
+  priority: string;
+  status: string;
+  submittedAt: string;
+
+  assignedDepartment?: string;
+  assignedAuthority?: string;
+  dueDate?: string;
+
+  escalationLevel?: number;
+  escalatedTo?: string;
+  escalationReason?: string;
+
+  adminRemarks?: string;
+  resolutionDetails?: string;
 };
 
-const sampleTickets: Ticket[] = [
-  {
-    id: "DSC-2026-00125",
-    title: "Projector not working in Room 204",
-    category: "Infrastructure",
-    location: "Block A, Room 204",
-    priority: "High",
-    description:
-      "The projector in Room 204 is not displaying anything during class.",
-    status: "In Progress",
-    assignedTo: "Maintenance",
-    submitted: "Today, 10:42 AM",
-    updated: "Today, 12:15 PM",
-    adminNote:
-      "Maintenance team has been assigned. Technician is checking the projector.",
-  },
-  {
-    id: "DSC-2026-00124",
-    title: "Water leakage near Block B",
-    category: "Infrastructure",
-    location: "Block B, Ground Floor",
-    priority: "Emergency",
-    description:
-      "Water leakage has been reported near the ground floor.",
-    status: "Under Review",
-    assignedTo: "Unassigned",
-    submitted: "Today, 9:15 AM",
-    updated: "Today, 9:15 AM",
-    adminNote: "Complaint is currently being reviewed.",
-  },
-];
+const STORAGE_KEY = "dsceComplaints";
 
-const authorities = [
-  "Maintenance",
-  "Security Office",
-  "Academic Office",
-  "Faculty Coordinator",
+const departments = [
+  "Administration",
+  "Academic Department",
+  "Human Resources",
+  "Finance / Accounts",
+  "Examination Cell",
+  "Student Affairs",
+  "Infrastructure & Maintenance",
+  "IT Department",
+  "Library",
   "Hostel Administration",
   "Transport Department",
-  "Student Affairs",
+  "Security",
+  "Disciplinary Committee",
+  "Principal's Office",
+  "Other",
 ];
 
-export default function AdminDashboard() {
-  const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
+const statuses = [
+  "Pending",
+  "Under Review",
+  "Assigned",
+  "In Progress",
+  "Escalated",
+  "Resolved",
+  "Closed",
+  "Rejected",
+];
 
+const priorities = [
+  "Low",
+  "Medium",
+  "High",
+  "Urgent",
+];
+
+function formatDate(dateString?: string) {
+  if (!dateString) return "Not set";
+
+  const date = new Date(dateString);
+
+  if (Number.isNaN(date.getTime())) {
+    return dateString;
+  }
+
+  return date.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function formatDateTime(dateString?: string) {
+  if (!dateString) return "Not available";
+
+  const date = new Date(dateString);
+
+  if (Number.isNaN(date.getTime())) {
+    return dateString;
+  }
+
+  return date.toLocaleString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function priorityClass(priority: string) {
+  switch (priority) {
+    case "Urgent":
+      return "border-red-400/30 bg-red-500/10 text-red-400";
+
+    case "High":
+      return "border-orange-400/30 bg-orange-500/10 text-orange-400";
+
+    case "Medium":
+      return "border-yellow-400/30 bg-yellow-500/10 text-yellow-400";
+
+    default:
+      return "border-green-400/30 bg-green-500/10 text-green-400";
+  }
+}
+
+function statusClass(status: string) {
+  switch (status) {
+    case "Pending":
+      return "border-yellow-400/30 bg-yellow-500/10 text-yellow-400";
+
+    case "Under Review":
+      return "border-blue-400/30 bg-blue-500/10 text-blue-400";
+
+    case "Assigned":
+      return "border-purple-400/30 bg-purple-500/10 text-purple-400";
+
+    case "In Progress":
+      return "border-cyan-400/30 bg-cyan-500/10 text-cyan-400";
+
+    case "Escalated":
+      return "border-red-400/30 bg-red-500/10 text-red-400";
+
+    case "Resolved":
+      return "border-green-400/30 bg-green-500/10 text-green-400";
+
+    case "Closed":
+      return "border-slate-400/30 bg-slate-500/10 text-slate-300";
+
+    case "Rejected":
+      return "border-red-400/30 bg-red-500/10 text-red-400";
+
+    default:
+      return "border-slate-700 bg-slate-800 text-slate-300";
+  }
+}
+
+export default function AdminDashboard() {
+  const [complaints, setComplaints] = useState<Complaint[]>([]);
+  const [selectedComplaint, setSelectedComplaint] =
+    useState<Complaint | null>(null);
+
+  const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [priorityFilter, setPriorityFilter] = useState("All");
-  const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState("All");
 
-  /* LOAD TICKETS */
+  const [department, setDepartment] = useState("");
+  const [authority, setAuthority] = useState("");
+  const [status, setStatus] = useState("");
+  const [priority, setPriority] = useState("");
+  const [dueDate, setDueDate] = useState("");
+  const [adminRemarks, setAdminRemarks] = useState("");
 
+  const [escalatedTo, setEscalatedTo] = useState("");
+  const [escalationReason, setEscalationReason] = useState("");
+
+  const [message, setMessage] = useState("");
+
+  /*
+    Load complaints from localStorage.
+  */
   useEffect(() => {
-    const saved = localStorage.getItem("dsce_complaints");
+    const stored = localStorage.getItem(STORAGE_KEY);
 
-    if (saved) {
-      try {
-        const studentTickets = JSON.parse(saved) as Ticket[];
+    if (!stored) {
+      setComplaints([]);
+      return;
+    }
 
-        setTickets([...studentTickets, ...sampleTickets]);
-      } catch {
-        setTickets(sampleTickets);
+    try {
+      const parsed = JSON.parse(stored);
+
+      if (Array.isArray(parsed)) {
+        setComplaints(parsed);
       }
-    } else {
-      setTickets(sampleTickets);
+    } catch (error) {
+      console.error(
+        "Unable to load complaints:",
+        error
+      );
     }
   }, []);
 
-  /* SAVE UPDATED TICKETS */
-
-  function saveTickets(updatedTickets: Ticket[]) {
-    setTickets(updatedTickets);
-
-    const sampleIds = new Set(
-      sampleTickets.map((ticket) => ticket.id)
-    );
-
-    const studentTickets = updatedTickets.filter(
-      (ticket) => !sampleIds.has(ticket.id)
-    );
+  /*
+    Save complaints.
+  */
+  function saveComplaints(updated: Complaint[]) {
+    setComplaints(updated);
 
     localStorage.setItem(
-      "dsce_complaints",
-      JSON.stringify(studentTickets)
+      STORAGE_KEY,
+      JSON.stringify(updated)
     );
   }
 
-  /* UPDATE TICKET */
+  /*
+    Open complaint details.
+  */
+  function openComplaint(complaint: Complaint) {
+    setSelectedComplaint(complaint);
 
-  function updateTicket(
-    ticketId: string,
-    updates: Partial<Ticket>
-  ) {
-    const updatedTickets = tickets.map((ticket) =>
-      ticket.id === ticketId
-        ? {
-            ...ticket,
-            ...updates,
-            updated: new Date().toLocaleString(),
-          }
-        : ticket
+    setDepartment(
+      complaint.assignedDepartment || ""
     );
 
-    saveTickets(updatedTickets);
-
-    const updatedTicket = updatedTickets.find(
-      (ticket) => ticket.id === ticketId
+    setAuthority(
+      complaint.assignedAuthority || ""
     );
 
-    if (updatedTicket) {
-      setSelectedTicket(updatedTicket);
+    setStatus(
+      complaint.status || "Pending"
+    );
+
+    setPriority(
+      complaint.priority || "Medium"
+    );
+
+    setDueDate(
+      complaint.dueDate || ""
+    );
+
+    setAdminRemarks(
+      complaint.adminRemarks || ""
+    );
+
+    setEscalatedTo(
+      complaint.escalatedTo || ""
+    );
+
+    setEscalationReason(
+      complaint.escalationReason || ""
+    );
+
+    setMessage("");
+  }
+
+  /*
+    Close complaint details.
+  */
+  function closeComplaint() {
+    setSelectedComplaint(null);
+    setMessage("");
+  }
+
+  /*
+    Update selected complaint.
+  */
+  function updateComplaint() {
+    if (!selectedComplaint) return;
+
+    const updatedComplaint: Complaint = {
+      ...selectedComplaint,
+
+      assignedDepartment:
+        department,
+
+      assignedAuthority:
+        authority,
+
+      status,
+
+      priority,
+
+      dueDate,
+
+      adminRemarks,
+    };
+
+    const updated = complaints.map(
+      (complaint) =>
+        complaint.id === selectedComplaint.id
+          ? updatedComplaint
+          : complaint
+    );
+
+    saveComplaints(updated);
+
+    setSelectedComplaint(updatedComplaint);
+
+    setMessage(
+      "Complaint updated successfully."
+    );
+  }
+
+  /*
+    Escalate complaint.
+  */
+  function escalateComplaint() {
+    if (!selectedComplaint) return;
+
+    if (!escalatedTo.trim()) {
+      setMessage(
+        "Please enter the authority to whom this complaint should be escalated."
+      );
+
+      return;
     }
+
+    if (!escalationReason.trim()) {
+      setMessage(
+        "Please enter a reason for escalation."
+      );
+
+      return;
+    }
+
+    const currentLevel =
+      selectedComplaint.escalationLevel || 0;
+
+    const updatedComplaint: Complaint = {
+      ...selectedComplaint,
+
+      status: "Escalated",
+
+      escalationLevel:
+        currentLevel + 1,
+
+      escalatedTo,
+
+      escalationReason,
+
+      adminRemarks,
+    };
+
+    const updated = complaints.map(
+      (complaint) =>
+        complaint.id === selectedComplaint.id
+          ? updatedComplaint
+          : complaint
+    );
+
+    saveComplaints(updated);
+
+    setSelectedComplaint(updatedComplaint);
+
+    setStatus("Escalated");
+
+    setMessage(
+      "Complaint escalated successfully."
+    );
   }
 
-  /* FILTER */
+  /*
+    Filter complaints.
+  */
+  const filteredComplaints = useMemo(() => {
+    return complaints.filter((complaint) => {
+      const searchText =
+        search.toLowerCase();
 
-  const filteredTickets = tickets.filter((ticket) => {
-    const matchesStatus =
-      statusFilter === "All" ||
-      ticket.status === statusFilter;
+      const matchesSearch =
+        complaint.id
+          .toLowerCase()
+          .includes(searchText) ||
+        complaint.title
+          .toLowerCase()
+          .includes(searchText) ||
+        complaint.complainantName
+          .toLowerCase()
+          .includes(searchText) ||
+        complaint.complainantId
+          .toLowerCase()
+          .includes(searchText) ||
+        complaint.category
+          .toLowerCase()
+          .includes(searchText);
 
-    const matchesPriority =
-      priorityFilter === "All" ||
-      ticket.priority === priorityFilter;
+      const matchesStatus =
+        statusFilter === "All" ||
+        complaint.status === statusFilter;
 
-    const searchText = search.toLowerCase();
+      const matchesPriority =
+        priorityFilter === "All" ||
+        complaint.priority === priorityFilter;
 
-    const matchesSearch =
-      ticket.id.toLowerCase().includes(searchText) ||
-      ticket.title.toLowerCase().includes(searchText) ||
-      ticket.category.toLowerCase().includes(searchText);
+      const matchesType =
+        typeFilter === "All" ||
+        complaint.complainantType ===
+          typeFilter;
 
-    return (
-      matchesStatus &&
-      matchesPriority &&
-      matchesSearch
-    );
-  });
+      return (
+        matchesSearch &&
+        matchesStatus &&
+        matchesPriority &&
+        matchesType
+      );
+    });
+  }, [
+    complaints,
+    search,
+    statusFilter,
+    priorityFilter,
+    typeFilter,
+  ]);
+
+  /*
+    Dashboard statistics.
+  */
+  const totalComplaints =
+    complaints.length;
+
+  const pendingComplaints =
+    complaints.filter(
+      (complaint) =>
+        complaint.status === "Pending"
+    ).length;
+
+  const inProgressComplaints =
+    complaints.filter(
+      (complaint) =>
+        complaint.status ===
+          "In Progress" ||
+        complaint.status ===
+          "Under Review" ||
+        complaint.status ===
+          "Assigned"
+    ).length;
+
+  const escalatedComplaints =
+    complaints.filter(
+      (complaint) =>
+        complaint.status ===
+        "Escalated"
+    ).length;
+
+  const resolvedComplaints =
+    complaints.filter(
+      (complaint) =>
+        complaint.status ===
+          "Resolved" ||
+        complaint.status ===
+          "Closed"
+    ).length;
+
+  const urgentComplaints =
+    complaints.filter(
+      (complaint) =>
+        complaint.priority === "Urgent"
+    ).length;
 
   return (
     <main className="min-h-screen bg-slate-950 text-white">
 
       {/* HEADER */}
 
-      <header className="border-b border-white/10">
+      <header className="border-b border-slate-800 bg-slate-950/95">
 
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
 
-          <a
-            href="/"
-            className="text-xl font-bold tracking-tight"
-          >
-            DSCE<span className="text-blue-400">CONNECT</span>
-          </a>
+          <div>
 
-          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
+
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-cyan-400 text-xl font-black">
+                D
+              </div>
+
+              <div>
+
+                <h1 className="text-xl font-bold">
+                  DSCE CONNECT
+                </h1>
+
+                <p className="text-xs text-slate-500">
+                  Administration Control Center
+                </p>
+
+              </div>
+
+            </div>
+
+          </div>
+
+          <div className="flex items-center gap-3">
+
+            <span className="hidden rounded-full border border-red-400/20 bg-red-500/10 px-4 py-2 text-xs font-semibold text-red-400 sm:block">
+              ADMINISTRATOR
+            </span>
 
             <a
-              href="/login"
-              className="text-sm text-slate-400 hover:text-white"
+              href="/"
+              className="rounded-xl border border-slate-700 px-4 py-2 text-sm font-semibold transition hover:bg-slate-800"
             >
-              Logout
+              Home
             </a>
-
-            <div className="hidden text-right sm:block">
-
-              <p className="text-sm font-medium">
-                Administrator
-              </p>
-
-              <p className="text-xs text-slate-500">
-                admin@dsce.edu.in
-              </p>
-
-            </div>
-
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-500 font-semibold">
-              A
-            </div>
 
           </div>
 
@@ -213,100 +506,100 @@ export default function AdminDashboard() {
 
       {/* MAIN */}
 
-      <div className="mx-auto max-w-7xl px-6 py-10">
+      <div className="mx-auto max-w-7xl px-6 py-8">
 
-        {/* TITLE */}
+        {/* PAGE TITLE */}
 
-        <section className="mb-10">
+        <div className="mb-8">
 
-          <p className="text-sm font-medium text-red-400">
-            ADMINISTRATION
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-blue-400">
+            Administration
           </p>
 
-          <h1 className="mt-2 text-3xl font-bold sm:text-4xl">
-            Admin Dashboard
-          </h1>
+          <h2 className="mt-2 text-4xl font-black">
+            Complaint Management
+          </h2>
 
           <p className="mt-3 max-w-3xl text-slate-400">
-            Review complaints, assign authorities and monitor
-            campus issues.
+            Review, assign, escalate and monitor all
+            student and faculty complaints from one
+            centralized administration panel.
           </p>
 
-        </section>
+        </div>
 
         {/* STATISTICS */}
 
-        <section className="mb-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
 
           <StatCard
-            title="Total"
-            value={tickets.length.toString()}
-            description="All complaints"
+            label="Total"
+            value={totalComplaints}
+            icon="📋"
           />
 
           <StatCard
-            title="New"
-            value={tickets.filter(
-              (t) => t.status === "Submitted"
-            ).length.toString()}
-            description="Need review"
+            label="Pending"
+            value={pendingComplaints}
+            icon="⏳"
           />
 
           <StatCard
-            title="In Progress"
-            value={tickets.filter(
-              (t) => t.status === "In Progress"
-            ).length.toString()}
-            description="Being handled"
+            label="In Progress"
+            value={inProgressComplaints}
+            icon="🔄"
           />
 
           <StatCard
-            title="High Priority"
-            value={tickets.filter(
-              (t) =>
-                t.priority === "High" ||
-                t.priority === "Emergency"
-            ).length.toString()}
-            description="Require attention"
+            label="Escalated"
+            value={escalatedComplaints}
+            icon="🚨"
           />
 
           <StatCard
-            title="Resolved"
-            value={tickets.filter(
-              (t) => t.status === "Resolved"
-            ).length.toString()}
-            description="Completed"
+            label="Resolved"
+            value={resolvedComplaints}
+            icon="✅"
           />
 
-        </section>
+          <StatCard
+            label="Urgent"
+            value={urgentComplaints}
+            icon="⚠️"
+          />
+
+        </div>
 
         {/* FILTERS */}
 
-        <section className="mb-6 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+        <section className="mt-8 rounded-3xl border border-slate-800 bg-slate-900 p-5">
 
-          <div className="grid gap-4 lg:grid-cols-4">
+          <div className="flex flex-col gap-4 lg:flex-row">
 
-            <div className="lg:col-span-2">
+            {/* SEARCH */}
 
-              <label className="text-xs text-slate-500">
-                Search complaints
+            <div className="flex-1">
+
+              <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-500">
+                Search
               </label>
 
               <input
-                type="text"
                 value={search}
                 onChange={(e) =>
                   setSearch(e.target.value)
                 }
-                placeholder="Search by ticket ID, title or category..."
-                className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm outline-none placeholder:text-slate-600 focus:border-blue-400"
+                placeholder="Search ticket, name, USN, category..."
+                className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm outline-none transition focus:border-blue-500"
               />
 
             </div>
 
+            {/* STATUS */}
+
             <div>
 
-              <label className="text-xs text-slate-500">
+              <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-500">
                 Status
               </label>
 
@@ -315,23 +608,31 @@ export default function AdminDashboard() {
                 onChange={(e) =>
                   setStatusFilter(e.target.value)
                 }
-                className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm outline-none"
+                className="rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm outline-none focus:border-blue-500"
               >
 
-                <option>All</option>
-                <option>Submitted</option>
-                <option>Under Review</option>
-                <option>Assigned</option>
-                <option>In Progress</option>
-                <option>Resolved</option>
+                <option value="All">
+                  All Statuses
+                </option>
+
+                {statuses.map((item) => (
+                  <option
+                    key={item}
+                    value={item}
+                  >
+                    {item}
+                  </option>
+                ))}
 
               </select>
 
             </div>
 
+            {/* PRIORITY */}
+
             <div>
 
-              <label className="text-xs text-slate-500">
+              <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-500">
                 Priority
               </label>
 
@@ -340,14 +641,53 @@ export default function AdminDashboard() {
                 onChange={(e) =>
                   setPriorityFilter(e.target.value)
                 }
-                className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm outline-none"
+                className="rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm outline-none focus:border-blue-500"
               >
 
-                <option>All</option>
-                <option>Emergency</option>
-                <option>High</option>
-                <option>Medium</option>
-                <option>Low</option>
+                <option value="All">
+                  All Priorities
+                </option>
+
+                {priorities.map((item) => (
+                  <option
+                    key={item}
+                    value={item}
+                  >
+                    {item}
+                  </option>
+                ))}
+
+              </select>
+
+            </div>
+
+            {/* USER TYPE */}
+
+            <div>
+
+              <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-500">
+                Complainant
+              </label>
+
+              <select
+                value={typeFilter}
+                onChange={(e) =>
+                  setTypeFilter(e.target.value)
+                }
+                className="rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm outline-none focus:border-blue-500"
+              >
+
+                <option value="All">
+                  Everyone
+                </option>
+
+                <option value="student">
+                  Students
+                </option>
+
+                <option value="faculty">
+                  Faculty
+                </option>
 
               </select>
 
@@ -357,125 +697,158 @@ export default function AdminDashboard() {
 
         </section>
 
-        {/* COMPLAINT QUEUE */}
+        {/* COMPLAINT LIST */}
 
-        <section>
+        <section className="mt-6">
 
-          <div className="mb-5 flex items-end justify-between">
+          <div className="mb-4 flex items-center justify-between">
 
-            <div>
-
-              <h2 className="text-xl font-semibold">
-                Complaint Queue
-              </h2>
-
-              <p className="mt-1 text-sm text-slate-500">
-                Complaints submitted by students and campus users.
-              </p>
-
-            </div>
+            <h3 className="text-xl font-bold">
+              Complaints
+            </h3>
 
             <p className="text-sm text-slate-500">
-              {filteredTickets.length} result
-              {filteredTickets.length !== 1
-                ? "s"
-                : ""}
+              Showing{" "}
+              {filteredComplaints.length}{" "}
+              of {complaints.length}
             </p>
 
           </div>
 
-          <div className="overflow-hidden rounded-2xl border border-white/10">
+          {filteredComplaints.length === 0 ? (
 
-            {filteredTickets.map((ticket) => (
+            <div className="rounded-3xl border border-dashed border-slate-700 bg-slate-900 p-12 text-center">
 
-              <button
-                key={ticket.id}
-                type="button"
-                onClick={() =>
-                  setSelectedTicket(ticket)
-                }
-                className="block w-full border-b border-white/10 p-5 text-left transition last:border-b-0 hover:bg-white/[0.04]"
-              >
-
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-
-                  <div>
-
-                    <div className="flex flex-wrap items-center gap-2">
-
-                      <span className="text-xs font-medium text-blue-400">
-                        {ticket.id}
-                      </span>
-
-                      <PriorityBadge
-                        priority={ticket.priority}
-                      />
-
-                    </div>
-
-                    <h3 className="mt-2 font-semibold">
-                      {ticket.title}
-                    </h3>
-
-                    <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-500">
-
-                      <span>
-                        {ticket.category}
-                      </span>
-
-                      <span>•</span>
-
-                      <span>
-                        {ticket.location}
-                      </span>
-
-                    </div>
-
-                  </div>
-
-                  <div className="flex items-center gap-4">
-
-                    <div className="text-right">
-
-                      <p className="text-xs text-slate-600">
-                        Assigned to
-                      </p>
-
-                      <p className="mt-1 text-sm text-slate-400">
-                        {ticket.assignedTo}
-                      </p>
-
-                    </div>
-
-                    <StatusBadge
-                      status={ticket.status}
-                    />
-
-                  </div>
-
-                </div>
-
-              </button>
-
-            ))}
-
-            {filteredTickets.length === 0 && (
-
-              <div className="p-12 text-center">
-
-                <p className="text-lg font-medium">
-                  No complaints found
-                </p>
-
-                <p className="mt-2 text-sm text-slate-500">
-                  Try changing the search or filters.
-                </p>
-
+              <div className="text-5xl">
+                📭
               </div>
 
-            )}
+              <h3 className="mt-5 text-xl font-bold">
+                No complaints found
+              </h3>
 
-          </div>
+              <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
+                Complaints submitted by students or faculty
+                will appear here automatically.
+              </p>
+
+            </div>
+
+          ) : (
+
+            <div className="space-y-4">
+
+              {filteredComplaints.map(
+                (complaint) => (
+
+                  <button
+                    key={complaint.id}
+                    onClick={() =>
+                      openComplaint(complaint)
+                    }
+                    className="w-full rounded-2xl border border-slate-800 bg-slate-900 p-5 text-left transition hover:border-blue-500/40 hover:bg-slate-900/80"
+                  >
+
+                    <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+
+                      <div className="min-w-0 flex-1">
+
+                        <div className="flex flex-wrap items-center gap-2">
+
+                          <span className="font-mono text-sm font-bold text-blue-400">
+                            {complaint.id}
+                          </span>
+
+                          <span
+                            className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${statusClass(
+                              complaint.status
+                            )}`}
+                          >
+                            {complaint.status}
+                          </span>
+
+                          <span
+                            className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${priorityClass(
+                              complaint.priority
+                            )}`}
+                          >
+                            {complaint.priority}
+                          </span>
+
+                        </div>
+
+                        <h4 className="mt-3 truncate text-lg font-bold">
+                          {complaint.title}
+                        </h4>
+
+                        <p className="mt-1 text-sm text-slate-500">
+                          {complaint.category}
+                        </p>
+
+                        <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs text-slate-500">
+
+                          <span>
+                            👤{" "}
+                            {complaint.complainantName}
+                          </span>
+
+                          <span>
+                            ID:{" "}
+                            {complaint.complainantId}
+                          </span>
+
+                          <span>
+                            {complaint.complainantType ===
+                            "student"
+                              ? "🎓 Student"
+                              : "👨‍🏫 Faculty"}
+                          </span>
+
+                          <span>
+                            📅{" "}
+                            {formatDate(
+                              complaint.submittedAt
+                            )}
+                          </span>
+
+                        </div>
+
+                      </div>
+
+                      <div className="flex shrink-0 items-center gap-3">
+
+                        {complaint.assignedDepartment && (
+                          <div className="hidden rounded-xl border border-slate-800 bg-slate-950 px-4 py-3 text-right md:block">
+
+                            <p className="text-[10px] uppercase tracking-wider text-slate-600">
+                              Assigned Department
+                            </p>
+
+                            <p className="mt-1 text-xs font-semibold text-slate-300">
+                              {
+                                complaint.assignedDepartment
+                              }
+                            </p>
+
+                          </div>
+                        )}
+
+                        <span className="text-xl text-slate-600">
+                          →
+                        </span>
+
+                      </div>
+
+                    </div>
+
+                  </button>
+
+                )
+              )}
+
+            </div>
+
+          )}
 
         </section>
 
@@ -483,216 +856,394 @@ export default function AdminDashboard() {
 
       {/* DETAIL MODAL */}
 
-      {selectedTicket && (
+      {selectedComplaint && (
 
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-6 py-8">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/80 p-4 backdrop-blur-sm">
 
-          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-white/10 bg-slate-950 p-6 shadow-2xl">
+          <div className="mx-auto my-8 max-w-5xl rounded-3xl border border-slate-700 bg-slate-950 shadow-2xl">
 
             {/* MODAL HEADER */}
 
-            <div className="flex items-start justify-between">
+            <div className="flex items-start justify-between border-b border-slate-800 p-6">
 
               <div>
 
-                <p className="text-sm font-medium text-blue-400">
-                  {selectedTicket.id}
-                </p>
+                <div className="flex flex-wrap items-center gap-3">
 
-                <h2 className="mt-2 text-2xl font-bold">
-                  {selectedTicket.title}
+                  <span className="font-mono text-lg font-bold text-blue-400">
+                    {selectedComplaint.id}
+                  </span>
+
+                  <span
+                    className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusClass(
+                      selectedComplaint.status
+                    )}`}
+                  >
+                    {selectedComplaint.status}
+                  </span>
+
+                </div>
+
+                <h2 className="mt-3 text-2xl font-bold">
+                  {selectedComplaint.title}
                 </h2>
+
+                <p className="mt-1 text-sm text-slate-500">
+                  Submitted{" "}
+                  {formatDateTime(
+                    selectedComplaint.submittedAt
+                  )}
+                </p>
 
               </div>
 
               <button
-                type="button"
-                onClick={() =>
-                  setSelectedTicket(null)
-                }
-                className="rounded-lg px-3 py-2 text-slate-400 hover:bg-white/5 hover:text-white"
+                onClick={closeComplaint}
+                className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-700 text-xl text-slate-400 transition hover:bg-slate-800 hover:text-white"
               >
-                ✕
+                ×
               </button>
 
             </div>
 
-            {/* DETAILS */}
+            {/* MODAL CONTENT */}
 
-            <div className="mt-8 grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-6 p-6 lg:grid-cols-2">
 
-              <Detail
-                label="Category"
-                value={selectedTicket.category}
-              />
+              {/* LEFT: COMPLAINT */}
 
-              <Detail
-                label="Location"
-                value={selectedTicket.location}
-              />
+              <div className="space-y-5">
 
-              <Detail
-                label="Priority"
-                value={selectedTicket.priority}
-              />
+                <InfoBox
+                  label="Complainant"
+                  value={`${selectedComplaint.complainantName} (${selectedComplaint.complainantId})`}
+                />
 
-              <Detail
-                label="Submitted"
-                value={selectedTicket.submitted}
-              />
+                <InfoBox
+                  label="User Type"
+                  value={
+                    selectedComplaint.complainantType ===
+                    "student"
+                      ? "Student"
+                      : "Faculty"
+                  }
+                />
 
-            </div>
+                <InfoBox
+                  label="Category"
+                  value={
+                    selectedComplaint.category
+                  }
+                />
 
-            {/* DESCRIPTION */}
+                <InfoBox
+                  label="Priority"
+                  value={
+                    selectedComplaint.priority
+                  }
+                />
 
-            <div className="mt-6 rounded-xl border border-white/10 bg-white/[0.03] p-5">
+                <InfoBox
+                  label="Location"
+                  value={
+                    selectedComplaint.location ||
+                    "Not provided"
+                  }
+                />
 
-              <p className="text-xs font-medium text-slate-500">
-                COMPLAINT DESCRIPTION
-              </p>
+                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
 
-              <p className="mt-2 text-sm leading-6 text-slate-300">
-                {selectedTicket.description}
-              </p>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    Complaint Description
+                  </p>
 
-            </div>
-
-            {/* STATUS */}
-
-            <div className="mt-6">
-
-              <label className="text-sm font-medium">
-                Complaint Status
-              </label>
-
-              <select
-                value={selectedTicket.status}
-                onChange={(e) =>
-                  updateTicket(
-                    selectedTicket.id,
+                  <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-slate-300">
                     {
-                      status:
-                        e.target.value as Status,
+                      selectedComplaint.description
                     }
-                  )
-                }
-                className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm outline-none focus:border-blue-400"
-              >
+                  </p>
 
-                <option>Submitted</option>
-                <option>Under Review</option>
-                <option>Assigned</option>
-                <option>In Progress</option>
-                <option>Resolved</option>
+                </div>
 
-              </select>
+                {selectedComplaint.escalatedTo && (
 
-            </div>
+                  <div className="rounded-2xl border border-red-400/20 bg-red-500/5 p-5">
 
-            {/* ASSIGN */}
+                    <p className="text-xs font-semibold uppercase tracking-wider text-red-400">
+                      Escalation
+                    </p>
 
-            <div className="mt-6">
+                    <p className="mt-3 text-sm text-slate-300">
+                      Escalated to:{" "}
+                      <span className="font-semibold">
+                        {
+                          selectedComplaint.escalatedTo
+                        }
+                      </span>
+                    </p>
 
-              <label className="text-sm font-medium">
-                Assign Authority
-              </label>
+                    <p className="mt-2 text-sm text-slate-400">
+                      Reason:{" "}
+                      {
+                        selectedComplaint.escalationReason ||
+                        "Not specified"
+                      }
+                    </p>
 
-              <select
-                value={selectedTicket.assignedTo}
-                onChange={(e) => {
+                  </div>
 
-                  const newAuthority =
-                    e.target.value;
-
-                  updateTicket(
-                    selectedTicket.id,
-                    {
-                      assignedTo:
-                        newAuthority,
-                      status:
-                        newAuthority !==
-                          "Unassigned" &&
-                        selectedTicket.status ===
-                          "Submitted"
-                          ? "Assigned"
-                          : selectedTicket.status,
-                    }
-                  );
-
-                }}
-                className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm outline-none focus:border-blue-400"
-              >
-
-                <option>
-                  Unassigned
-                </option>
-
-                {authorities.map(
-                  (authority) => (
-                    <option
-                      key={authority}
-                      value={authority}
-                    >
-                      {authority}
-                    </option>
-                  )
                 )}
 
-              </select>
+              </div>
+
+              {/* RIGHT: ADMIN CONTROLS */}
+
+              <div className="space-y-5">
+
+                <div className="rounded-2xl border border-blue-400/20 bg-blue-500/5 p-5">
+
+                  <h3 className="font-bold text-blue-400">
+                    Administrative Action
+                  </h3>
+
+                  <p className="mt-1 text-xs text-slate-500">
+                    Only administrators should have access
+                    to these controls.
+                  </p>
+
+                </div>
+
+                {/* STATUS */}
+
+                <div>
+
+                  <label className="mb-2 block text-sm font-semibold text-slate-300">
+                    Complaint Status
+                  </label>
+
+                  <select
+                    value={status}
+                    onChange={(e) =>
+                      setStatus(e.target.value)
+                    }
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm outline-none focus:border-blue-500"
+                  >
+
+                    {statuses.map((item) => (
+                      <option
+                        key={item}
+                        value={item}
+                      >
+                        {item}
+                      </option>
+                    ))}
+
+                  </select>
+
+                </div>
+
+                {/* PRIORITY */}
+
+                <div>
+
+                  <label className="mb-2 block text-sm font-semibold text-slate-300">
+                    Priority
+                  </label>
+
+                  <select
+                    value={priority}
+                    onChange={(e) =>
+                      setPriority(e.target.value)
+                    }
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm outline-none focus:border-blue-500"
+                  >
+
+                    {priorities.map((item) => (
+                      <option
+                        key={item}
+                        value={item}
+                      >
+                        {item}
+                      </option>
+                    ))}
+
+                  </select>
+
+                </div>
+
+                {/* DEPARTMENT */}
+
+                <div>
+
+                  <label className="mb-2 block text-sm font-semibold text-slate-300">
+                    Assign Department
+                  </label>
+
+                  <select
+                    value={department}
+                    onChange={(e) =>
+                      setDepartment(e.target.value)
+                    }
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm outline-none focus:border-blue-500"
+                  >
+
+                    <option value="">
+                      Select Department
+                    </option>
+
+                    {departments.map(
+                      (item) => (
+                        <option
+                          key={item}
+                          value={item}
+                        >
+                          {item}
+                        </option>
+                      )
+                    )}
+
+                  </select>
+
+                </div>
+
+                {/* AUTHORITY */}
+
+                <div>
+
+                  <label className="mb-2 block text-sm font-semibold text-slate-300">
+                    Responsible Authority
+                  </label>
+
+                  <input
+                    value={authority}
+                    onChange={(e) =>
+                      setAuthority(e.target.value)
+                    }
+                    placeholder="Name / designation of responsible person"
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm outline-none focus:border-blue-500"
+                  />
+
+                </div>
+
+                {/* DUE DATE */}
+
+                <div>
+
+                  <label className="mb-2 block text-sm font-semibold text-slate-300">
+                    Resolution Deadline
+                  </label>
+
+                  <input
+                    type="date"
+                    value={dueDate}
+                    onChange={(e) =>
+                      setDueDate(e.target.value)
+                    }
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm outline-none focus:border-blue-500"
+                  />
+
+                </div>
+
+                {/* ADMIN REMARKS */}
+
+                <div>
+
+                  <label className="mb-2 block text-sm font-semibold text-slate-300">
+                    Administrative Remarks
+                  </label>
+
+                  <textarea
+                    rows={4}
+                    value={adminRemarks}
+                    onChange={(e) =>
+                      setAdminRemarks(e.target.value)
+                    }
+                    placeholder="Enter action taken, instructions or administrative remarks..."
+                    className="w-full resize-none rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm outline-none focus:border-blue-500"
+                  />
+
+                </div>
+
+                {/* SAVE */}
+
+                <button
+                  onClick={updateComplaint}
+                  className="w-full rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 px-5 py-3 font-bold transition hover:from-blue-500 hover:to-cyan-400"
+                >
+                  Save Administrative Changes
+                </button>
+
+                {/* ESCALATION */}
+
+                <div className="rounded-2xl border border-red-400/20 bg-red-500/5 p-5">
+
+                  <h3 className="font-bold text-red-400">
+                    Escalate Complaint
+                  </h3>
+
+                  <p className="mt-1 text-xs leading-5 text-slate-500">
+                    Use this when the matter requires
+                    intervention from a higher authority.
+                  </p>
+
+                  <input
+                    value={escalatedTo}
+                    onChange={(e) =>
+                      setEscalatedTo(e.target.value)
+                    }
+                    placeholder="Escalate to..."
+                    className="mt-4 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm outline-none focus:border-red-400"
+                  />
+
+                  <textarea
+                    rows={3}
+                    value={escalationReason}
+                    onChange={(e) =>
+                      setEscalationReason(
+                        e.target.value
+                      )
+                    }
+                    placeholder="Reason for escalation..."
+                    className="mt-3 w-full resize-none rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm outline-none focus:border-red-400"
+                  />
+
+                  <button
+                    onClick={
+                      escalateComplaint
+                    }
+                    className="mt-3 w-full rounded-xl border border-red-400/30 bg-red-500/10 px-5 py-3 font-bold text-red-400 transition hover:bg-red-500/20"
+                  >
+                    🚨 Escalate Matter
+                  </button>
+
+                </div>
+
+                {/* MESSAGE */}
+
+                {message && (
+
+                  <div className="rounded-xl border border-blue-400/20 bg-blue-500/10 p-4 text-sm text-blue-300">
+                    {message}
+                  </div>
+
+                )}
+
+              </div>
 
             </div>
 
-            {/* ADMIN NOTE */}
+            {/* MODAL FOOTER */}
 
-            <div className="mt-6">
+            <div className="border-t border-slate-800 p-6">
 
-              <label className="text-sm font-medium">
-                Admin Update
-              </label>
-
-              <textarea
-                value={selectedTicket.adminNote}
-                onChange={(e) =>
-                  setSelectedTicket({
-                    ...selectedTicket,
-                    adminNote: e.target.value,
-                  })
-                }
-                rows={4}
-                placeholder="Write an update for the student..."
-                className="mt-2 w-full resize-none rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm outline-none placeholder:text-slate-600 focus:border-blue-400"
-              />
+              <button
+                onClick={closeComplaint}
+                className="rounded-xl border border-slate-700 px-6 py-3 text-sm font-semibold transition hover:bg-slate-800"
+              >
+                Close
+              </button>
 
             </div>
-
-            {/* SAVE NOTE */}
-
-            <button
-              type="button"
-              onClick={() =>
-                updateTicket(
-                  selectedTicket.id,
-                  {
-                    adminNote:
-                      selectedTicket.adminNote,
-                  }
-                )
-              }
-              className="mt-4 w-full rounded-xl bg-blue-500 px-5 py-3 font-semibold transition hover:bg-blue-400"
-            >
-              Save Admin Update
-            </button>
-
-            <button
-              type="button"
-              onClick={() =>
-                setSelectedTicket(null)
-              }
-              className="mt-3 w-full rounded-xl border border-white/10 px-5 py-3 text-sm font-medium transition hover:bg-white/[0.05]"
-            >
-              Close
-
-            </button>
 
           </div>
 
@@ -704,95 +1255,47 @@ export default function AdminDashboard() {
   );
 }
 
-
+/* ------------------------------------------------ */
 /* STAT CARD */
+/* ------------------------------------------------ */
 
 function StatCard({
-  title,
+  label,
   value,
-  description,
+  icon,
 }: {
-  title: string;
-  value: string;
-  description: string;
+  label: string;
+  value: number;
+  icon: string;
 }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+    <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
 
-      <p className="text-sm text-slate-500">
-        {title}
-      </p>
+      <div className="flex items-center justify-between">
 
-      <p className="mt-2 text-3xl font-bold">
-        {value}
-      </p>
+        <span className="text-2xl">
+          {icon}
+        </span>
 
-      <p className="mt-1 text-xs text-slate-600">
-        {description}
+        <span className="text-2xl font-black">
+          {value}
+        </span>
+
+      </div>
+
+      <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
+        {label}
       </p>
 
     </div>
   );
 }
 
+/* ------------------------------------------------ */
+/* INFO BOX */
+/* ------------------------------------------------ */
 
-/* STATUS BADGE */
-
-function StatusBadge({
-  status,
-}: {
-  status: Status;
-}) {
-  const style =
-    status === "Resolved"
-      ? "bg-green-500/10 text-green-400"
-      : status === "In Progress"
-      ? "bg-yellow-500/10 text-yellow-400"
-      : status === "Assigned"
-      ? "bg-purple-500/10 text-purple-400"
-      : status === "Under Review"
-      ? "bg-blue-500/10 text-blue-400"
-      : "bg-slate-500/10 text-slate-400";
-
-  return (
-    <span
-      className={`whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium ${style}`}
-    >
-      {status}
-    </span>
-  );
-}
-
-
-/* PRIORITY BADGE */
-
-function PriorityBadge({
-  priority,
-}: {
-  priority: Priority;
-}) {
-  const style =
-    priority === "Emergency"
-      ? "bg-red-500/10 text-red-400"
-      : priority === "High"
-      ? "bg-orange-500/10 text-orange-400"
-      : priority === "Medium"
-      ? "bg-yellow-500/10 text-yellow-400"
-      : "bg-green-500/10 text-green-400";
-
-  return (
-    <span
-      className={`whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-medium ${style}`}
-    >
-      {priority}
-    </span>
-  );
-}
-
-
-/* DETAIL BOX */
-
-function Detail({
+function InfoBox({
   label,
   value,
 }: {
@@ -800,13 +1303,13 @@ function Detail({
   value: string;
 }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+    <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
 
-      <p className="text-xs text-slate-600">
+      <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
         {label}
       </p>
 
-      <p className="mt-1 text-sm font-medium">
+      <p className="mt-2 text-sm font-medium text-slate-200">
         {value}
       </p>
 
