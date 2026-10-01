@@ -1,470 +1,272 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-
-type Complaint = {
-  id: string;
-  title: string;
-  category: string;
-  location: string;
-  priority: "Low" | "Medium" | "High" | "Emergency";
-  description: string;
-  status: "Submitted";
-  assignedTo: string;
-  submitted: string;
-  updated: string;
-  adminNote: string;
-};
+import Link from "next/link";
 
 export default function ComplaintPage() {
   const [submitted, setSubmitted] = useState(false);
   const [ticketId, setTicketId] = useState("");
 
-  const [form, setForm] = useState({
-    category: "",
-    title: "",
-    description: "",
-    location: "",
-    priority: "Medium",
-    confidential: false,
-  });
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
 
-  function handleChange(
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
-  ) {
-    const { name, value, type } = e.target;
+    const id = `DSCE-${Date.now().toString().slice(-6)}`;
 
-    setForm((current) => ({
-      ...current,
-      [name]:
-        type === "checkbox"
-          ? (e.target as HTMLInputElement).checked
-          : value,
-    }));
-  }
-
-  function generateTicketId() {
-    const randomNumber = Math.floor(10000 + Math.random() * 90000);
-
-    return `DSC-${new Date().getFullYear()}-${randomNumber}`;
-  }
-
-  function handleSubmit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-
-    const newTicketId = generateTicketId();
-
-    const now = new Date();
-
-    const newComplaint: Complaint = {
-      id: newTicketId,
-      title: form.title,
-      category: form.category,
-      location: form.location,
-      priority: form.priority as Complaint["priority"],
-      description: form.description,
-      status: "Submitted",
-      assignedTo: "Unassigned",
-      submitted: now.toLocaleString(),
-      updated: now.toLocaleString(),
-      adminNote: "Your complaint has been successfully submitted.",
-    };
-
-    /*
-      Store the new complaint in browser storage.
-      This is temporary. Later we will replace this
-      with a real database.
-    */
-
-    const existingComplaints =
-      JSON.parse(
-        localStorage.getItem("dsce_complaints") || "[]"
-      ) as Complaint[];
-
-    localStorage.setItem(
-      "dsce_complaints",
-      JSON.stringify([
-        newComplaint,
-        ...existingComplaints,
-      ])
-    );
-
-    setTicketId(newTicketId);
+    setTicketId(id);
     setSubmitted(true);
   }
 
   if (submitted) {
     return (
-      <main className="min-h-screen bg-slate-950 text-white">
-
-        {/* HEADER */}
-
-        <header className="border-b border-white/10">
-
-          <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
-
-            <a
-              href="/"
-              className="text-xl font-bold tracking-tight"
-            >
-              DSCE<span className="text-blue-400">CONNECT</span>
-            </a>
-
-            <a
+      <main className="min-h-screen bg-slate-950 px-6 py-12 text-white">
+        <div className="mx-auto max-w-2xl">
+          <div className="mb-8">
+            <Link
               href="/student"
-              className="text-sm text-slate-400 hover:text-white"
+              className="text-sm text-blue-400 hover:text-blue-300"
             >
-              ← Student Dashboard
-            </a>
-
+              ← Back to Student Dashboard
+            </Link>
           </div>
 
-        </header>
-
-        {/* SUCCESS */}
-
-        <div className="mx-auto flex min-h-[80vh] max-w-2xl items-center justify-center px-6">
-
-          <div className="w-full rounded-3xl border border-green-400/20 bg-green-400/[0.04] p-8 text-center sm:p-12">
-
-            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-green-500/10 text-4xl">
+          <div className="rounded-3xl border border-emerald-500/30 bg-slate-900 p-8 text-center shadow-2xl">
+            <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/20 text-3xl">
               ✓
             </div>
 
-            <p className="mt-6 text-sm font-medium text-green-400">
-              COMPLAINT SUBMITTED
-            </p>
-
-            <h1 className="mt-2 text-3xl font-bold">
-              Your complaint has been submitted
+            <h1 className="text-3xl font-bold">
+              Complaint Submitted Successfully
             </h1>
 
-            <p className="mx-auto mt-4 max-w-lg text-slate-400">
-              Your complaint has been successfully recorded.
-              Keep your ticket ID to track its progress.
+            <p className="mt-3 text-slate-400">
+              Your complaint has been registered with DSCE Connect.
             </p>
 
-            {/* TICKET ID */}
+            <div className="mt-8 rounded-2xl border border-blue-500/30 bg-blue-500/10 p-6">
+              <p className="text-sm text-slate-400">Your Ticket ID</p>
 
-            <div className="mt-8 rounded-2xl border border-white/10 bg-slate-900 p-6">
-
-              <p className="text-xs font-medium text-slate-500">
-                YOUR TICKET ID
-              </p>
-
-              <p className="mt-3 text-2xl font-bold tracking-wider text-blue-400">
+              <p className="mt-2 text-3xl font-bold tracking-wider text-blue-400">
                 {ticketId}
               </p>
-
             </div>
 
-            {/* ACTIONS */}
-
-            <div className="mt-8 grid gap-3 sm:grid-cols-2">
-
-              <a
-                href="/student/tickets"
-                className="rounded-xl bg-blue-500 px-5 py-3 font-semibold transition hover:bg-blue-400"
-              >
-                Track My Complaint
-              </a>
-
-              <a
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
+              <Link
                 href="/student"
-                className="rounded-xl border border-white/10 px-5 py-3 font-semibold transition hover:bg-white/[0.05]"
+                className="rounded-xl bg-blue-500 px-6 py-3 font-semibold transition hover:bg-blue-600"
               >
-                Student Dashboard
-              </a>
+                Go to Dashboard
+              </Link>
 
+              <button
+                onClick={() => {
+                  setSubmitted(false);
+                  setTicketId("");
+                }}
+                className="rounded-xl border border-slate-700 px-6 py-3 font-semibold transition hover:bg-slate-800"
+              >
+                Submit Another Complaint
+              </button>
             </div>
-
           </div>
-
         </div>
-
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-slate-950 text-white">
-
-      {/* HEADER */}
-
-      <header className="border-b border-white/10">
-
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
-
-          <a
-            href="/"
-            className="text-xl font-bold tracking-tight"
-          >
-            DSCE<span className="text-blue-400">CONNECT</span>
-          </a>
-
-          <a
+    <main className="min-h-screen bg-slate-950 px-6 py-10 text-white">
+      <div className="mx-auto max-w-4xl">
+        {/* Header */}
+        <div className="mb-8">
+          <Link
             href="/student"
-            className="text-sm text-slate-400 transition hover:text-white"
+            className="text-sm text-blue-400 hover:text-blue-300"
           >
-            ← Student Dashboard
-          </a>
+            ← Back to Student Dashboard
+          </Link>
 
+          <div className="mt-6">
+            <p className="text-sm font-semibold uppercase tracking-[0.25em] text-blue-400">
+              DSCE Connect
+            </p>
+
+            <h1 className="mt-2 text-4xl font-bold">
+              Report a Campus Problem
+            </h1>
+
+            <p className="mt-3 max-w-2xl text-slate-400">
+              Submit a complaint and the concerned faculty or administration
+              team will review it.
+            </p>
+          </div>
         </div>
 
-      </header>
-
-      {/* MAIN */}
-
-      <div className="mx-auto max-w-3xl px-6 py-10">
-
-        {/* TITLE */}
-
-        <section className="mb-10">
-
-          <p className="text-sm font-medium text-blue-400">
-            STUDENT PORTAL
-          </p>
-
-          <h1 className="mt-2 text-3xl font-bold sm:text-4xl">
-            Report a Problem
-          </h1>
-
-          <p className="mt-3 text-slate-400">
-            Tell us about the issue you are facing on campus.
-            Your complaint will be reviewed by the appropriate
-            authority.
-          </p>
-
-        </section>
-
-        {/* FORM */}
-
+        {/* Form */}
         <form
           onSubmit={handleSubmit}
-          className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 sm:p-8"
+          className="rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-2xl sm:p-8"
         >
-
-          {/* CATEGORY */}
-
-          <div className="mb-6">
-
-            <label
-              htmlFor="category"
-              className="text-sm font-medium"
-            >
-              Complaint Category
-            </label>
-
-            <select
-              id="category"
-              name="category"
-              value={form.category}
-              onChange={handleChange}
-              required
-              className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm outline-none focus:border-blue-400"
-            >
-
-              <option value="">
-                Select a category
-              </option>
-
-              <option value="Infrastructure">
-                Infrastructure
-              </option>
-
-              <option value="Academic">
-                Academic
-              </option>
-
-              <option value="Hostel">
-                Hostel
-              </option>
-
-              <option value="Transport">
-                Transport
-              </option>
-
-              <option value="Library">
-                Library
-              </option>
-
-              <option value="Lost & Found">
-                Lost & Found
-              </option>
-
-              <option value="Security">
-                Security
-              </option>
-
-              <option value="Other">
-                Other
-              </option>
-
-            </select>
-
-          </div>
-
-          {/* TITLE */}
-
-          <div className="mb-6">
-
-            <label
-              htmlFor="title"
-              className="text-sm font-medium"
-            >
-              Complaint Title
-            </label>
-
-            <input
-              id="title"
-              name="title"
-              type="text"
-              value={form.title}
-              onChange={handleChange}
-              required
-              placeholder="Briefly describe the problem"
-              className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm outline-none placeholder:text-slate-600 focus:border-blue-400"
-            />
-
-          </div>
-
-          {/* DESCRIPTION */}
-
-          <div className="mb-6">
-
-            <label
-              htmlFor="description"
-              className="text-sm font-medium"
-            >
-              Description
-            </label>
-
-            <textarea
-              id="description"
-              name="description"
-              value={form.description}
-              onChange={handleChange}
-              required
-              rows={6}
-              placeholder="Explain the problem in detail..."
-              className="mt-2 w-full resize-none rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm outline-none placeholder:text-slate-600 focus:border-blue-400"
-            />
-
-          </div>
-
-          {/* LOCATION */}
-
-          <div className="mb-6">
-
-            <label
-              htmlFor="location"
-              className="text-sm font-medium"
-            >
-              Location
-            </label>
-
-            <input
-              id="location"
-              name="location"
-              type="text"
-              value={form.location}
-              onChange={handleChange}
-              required
-              placeholder="Example: Block A, Room 204"
-              className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm outline-none placeholder:text-slate-600 focus:border-blue-400"
-            />
-
-          </div>
-
-          {/* PRIORITY */}
-
-          <div className="mb-6">
-
-            <label
-              htmlFor="priority"
-              className="text-sm font-medium"
-            >
-              Priority
-            </label>
-
-            <select
-              id="priority"
-              name="priority"
-              value={form.priority}
-              onChange={handleChange}
-              className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm outline-none focus:border-blue-400"
-            >
-
-              <option value="Low">
-                Low
-              </option>
-
-              <option value="Medium">
-                Medium
-              </option>
-
-              <option value="High">
-                High
-              </option>
-
-              <option value="Emergency">
-                Emergency
-              </option>
-
-            </select>
-
-          </div>
-
-          {/* CONFIDENTIAL */}
-
-          <div className="mb-8 rounded-xl border border-white/10 bg-slate-900/50 p-4">
-
-            <label className="flex cursor-pointer items-start gap-3">
+          <div className="grid gap-6">
+            {/* Title */}
+            <div>
+              <label
+                htmlFor="title"
+                className="mb-2 block text-sm font-semibold text-slate-200"
+              >
+                Complaint Title
+              </label>
 
               <input
-                type="checkbox"
-                name="confidential"
-                checked={form.confidential}
-                onChange={handleChange}
-                className="mt-1 h-4 w-4"
+                id="title"
+                name="title"
+                type="text"
+                required
+                placeholder="Example: Classroom projector not working"
+                className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none transition placeholder:text-slate-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
               />
+            </div>
 
-              <span>
+            {/* Category */}
+            <div>
+              <label
+                htmlFor="category"
+                className="mb-2 block text-sm font-semibold text-slate-200"
+              >
+                Category
+              </label>
 
-                <span className="block text-sm font-medium">
-                  Request confidential handling
-                </span>
+              <select
+                id="category"
+                name="category"
+                required
+                defaultValue=""
+                className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+              >
+                <option value="" disabled>
+                  Select a category
+                </option>
+                <option value="Infrastructure">Infrastructure</option>
+                <option value="Classroom">Classroom</option>
+                <option value="Electrical">Electrical</option>
+                <option value="Internet">Internet / Wi-Fi</option>
+                <option value="Cleanliness">Cleanliness</option>
+                <option value="Hostel">Hostel</option>
+                <option value="Transport">Transport</option>
+                <option value="Academic">Academic</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
 
-                <span className="mt-1 block text-xs leading-5 text-slate-500">
-                  Ask the administration to handle the complaint
-                  with additional privacy.
-                </span>
+            {/* Location */}
+            <div>
+              <label
+                htmlFor="location"
+                className="mb-2 block text-sm font-semibold text-slate-200"
+              >
+                Location
+              </label>
 
-              </span>
+              <input
+                id="location"
+                name="location"
+                type="text"
+                required
+                placeholder="Example: Block A, Room 204"
+                className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none transition placeholder:text-slate-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+              />
+            </div>
 
-            </label>
+            {/* Priority */}
+            <div>
+              <label
+                htmlFor="priority"
+                className="mb-2 block text-sm font-semibold text-slate-200"
+              >
+                Priority
+              </label>
 
+              <select
+                id="priority"
+                name="priority"
+                defaultValue="Medium"
+                className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+              >
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High</option>
+                <option value="Urgent">Urgent</option>
+              </select>
+            </div>
+
+            {/* Description */}
+            <div>
+              <label
+                htmlFor="description"
+                className="mb-2 block text-sm font-semibold text-slate-200"
+              >
+                Description
+              </label>
+
+              <textarea
+                id="description"
+                name="description"
+                required
+                rows={6}
+                placeholder="Describe the problem in detail..."
+                className="w-full resize-none rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none transition placeholder:text-slate-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+              />
+            </div>
+
+            {/* Student details */}
+            <div className="grid gap-6 sm:grid-cols-2">
+              <div>
+                <label
+                  htmlFor="studentName"
+                  className="mb-2 block text-sm font-semibold text-slate-200"
+                >
+                  Student Name
+                </label>
+
+                <input
+                  id="studentName"
+                  name="studentName"
+                  type="text"
+                  required
+                  placeholder="Your name"
+                  className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none transition placeholder:text-slate-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="usn"
+                  className="mb-2 block text-sm font-semibold text-slate-200"
+                >
+                  USN
+                </label>
+
+                <input
+                  id="usn"
+                  name="usn"
+                  type="text"
+                  required
+                  placeholder="Example: 1DS23CS001"
+                  className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none transition placeholder:text-slate-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                />
+              </div>
+            </div>
+
+            {/* Submit */}
+            <button
+              type="submit"
+              className="mt-2 w-full rounded-xl bg-gradient-to-r from-blue-500 to-cyan-400 px-6 py-4 font-bold text-white shadow-lg shadow-blue-500/20 transition hover:scale-[1.01] hover:from-blue-600 hover:to-cyan-500"
+            >
+              Submit Complaint 🚀
+            </button>
           </div>
-
-          {/* SUBMIT */}
-
-          <button
-            type="submit"
-            className="w-full rounded-xl bg-blue-500 px-5 py-3.5 font-semibold transition hover:bg-blue-400"
-          >
-            Submit Complaint
-          </button>
-
-          <p className="mt-4 text-center text-xs text-slate-600">
-            You will receive a unique ticket ID after submission.
-          </p>
-
         </form>
-
       </div>
-
     </main>
   );
 }
