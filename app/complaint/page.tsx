@@ -1,123 +1,164 @@
 "use client";
 
-import { FormEvent, useState } from "react";
-import Link from "next/link";
+import { FormEvent, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import {
-  addComplaint,
-  generateTicketId,
-} from "../lib/complaintStore";
-import {
-  studentComplaintCategories,
-  facultyComplaintCategories,
-} from "../lib/complaintCategories";
-import { Complaint, Priority, UserType } from "../lib/complaints";
+import { Suspense } from "react";
 
-export default function ComplaintPage() {
+type UserType = "student" | "faculty";
+
+type Complaint = {
+  id: string;
+  complainantType: UserType;
+  complainantName: string;
+  complainantId: string;
+  title: string;
+  category: string;
+  description: string;
+  location: string;
+  priority: string;
+  status: string;
+  submittedAt: string;
+};
+
+const studentComplaintCategories = [
+  "Faculty",
+  "Academic",
+  "Examination",
+  "Infrastructure",
+  "Classroom",
+  "Laboratory",
+  "Library",
+  "Hostel",
+  "Food / Canteen",
+  "Transport",
+  "Administration",
+  "Fees / Accounts",
+  "Scholarship",
+  "Harassment / Misconduct",
+  "IT / Technical",
+  "Security",
+  "Cleanliness",
+  "Other",
+];
+
+const facultyComplaintCategories = [
+  "Salary / Payroll",
+  "Students",
+  "Infrastructure",
+  "Academic / Department",
+  "Colleagues",
+  "Administration",
+  "Workload",
+  "Leave / Attendance",
+  "Promotion / Career",
+  "Research",
+  "Laboratory",
+  "IT / Technical",
+  "Facilities",
+  "Harassment / Misconduct",
+  "Security",
+  "Other",
+];
+
+function ComplaintForm() {
   const searchParams = useSearchParams();
 
-  const requestedType = searchParams.get("type");
+  const typeFromUrl = searchParams.get("type");
 
   const userType: UserType =
-    requestedType === "faculty" ? "faculty" : "student";
+    typeFromUrl === "faculty" ? "faculty" : "student";
 
   const categories =
-    userType === "student"
-      ? studentComplaintCategories
-      : facultyComplaintCategories;
+    userType === "faculty"
+      ? facultyComplaintCategories
+      : studentComplaintCategories;
 
-  const [submitted, setSubmitted] = useState(false);
+  const [name, setName] = useState("");
+  const [userId, setUserId] = useState("");
+  const [title, setTitle] = useState("");
+  const [category, setCategory] = useState(categories[0]);
+  const [description, setDescription] = useState("");
+  const [location, setLocation] = useState("");
+  const [priority, setPriority] = useState("Medium");
+
+  const [success, setSuccess] = useState(false);
   const [ticketId, setTicketId] = useState("");
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  useEffect(() => {
+    setCategory(categories[0]);
+  }, [userType]);
 
-    const form = new FormData(event.currentTarget);
+  function generateTicketId() {
+    const prefix = userType === "student" ? "STU" : "FAC";
 
-    const complaint: Complaint = {
-      id: generateTicketId(userType),
+    const number = Math.floor(
+      100000 + Math.random() * 900000
+    );
 
-      complainantType: userType,
-
-      complainantName: String(
-        form.get("complainantName") || ""
-      ),
-
-      complainantId: String(
-        form.get("complainantId") || ""
-      ),
-
-      title: String(form.get("title") || ""),
-
-      category: String(
-        form.get("category") || ""
-      ),
-
-      description: String(
-        form.get("description") || ""
-      ),
-
-      location: String(
-        form.get("location") || ""
-      ),
-
-      priority: (form.get("priority") ||
-        "Medium") as Priority,
-
-      status: "Pending",
-
-      assignedDepartment: "",
-
-      assignedAuthority: "",
-
-      submittedAt: new Date().toISOString(),
-
-      dueDate: "",
-
-      escalationLevel: 0,
-
-      escalatedTo: "",
-
-      escalatedAt: "",
-
-      escalationReason: "",
-
-      adminRemarks: "",
-
-      resolutionDetails: "",
-
-      resolvedAt: "",
-    };
-
-    addComplaint(complaint);
-
-    setTicketId(complaint.id);
-    setSubmitted(true);
+    return `${prefix}-${number}`;
   }
 
-  if (submitted) {
+  function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+
+    const id = generateTicketId();
+
+    const complaint: Complaint = {
+      id,
+      complainantType: userType,
+      complainantName: name,
+      complainantId: userId,
+      title,
+      category,
+      description,
+      location,
+      priority,
+      status: "Pending",
+      submittedAt: new Date().toISOString(),
+    };
+
+    /*
+      Store complaints locally for now.
+      Later we can replace this with a real database.
+    */
+
+    const existingComplaints =
+      JSON.parse(
+        localStorage.getItem("dsceComplaints") || "[]"
+      );
+
+    localStorage.setItem(
+      "dsceComplaints",
+      JSON.stringify([
+        complaint,
+        ...existingComplaints,
+      ])
+    );
+
+    setTicketId(id);
+    setSuccess(true);
+
+    setName("");
+    setUserId("");
+    setTitle("");
+    setDescription("");
+    setLocation("");
+    setPriority("Medium");
+    setCategory(categories[0]);
+  }
+
+  if (success) {
     return (
-      <main className="min-h-screen bg-slate-950 px-6 py-12 text-white">
+      <main className="min-h-screen bg-slate-950 text-white px-6 py-12">
         <div className="mx-auto max-w-2xl">
 
-          <Link
-            href={
-              userType === "student"
-                ? "/student"
-                : "/faculty"
-            }
-            className="text-sm text-blue-400 hover:text-blue-300"
-          >
-            ← Back to Dashboard
-          </Link>
+          <div className="rounded-3xl border border-green-400/20 bg-slate-900 p-10 text-center shadow-2xl">
 
-          <div className="mt-8 rounded-3xl border border-emerald-500/30 bg-slate-900 p-8 text-center shadow-2xl">
-
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/20 text-3xl">
+            <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-green-500/10 text-4xl">
               ✓
             </div>
 
-            <h1 className="mt-6 text-3xl font-bold">
+            <h1 className="text-3xl font-bold">
               Complaint Submitted
             </h1>
 
@@ -126,51 +167,45 @@ export default function ComplaintPage() {
               with DSCE Connect.
             </p>
 
-            <div className="mt-8 rounded-2xl border border-blue-500/30 bg-blue-500/10 p-6">
-
+            <div className="mt-8 rounded-2xl border border-blue-400/20 bg-blue-500/10 p-6">
               <p className="text-sm text-slate-400">
                 Your Ticket ID
               </p>
 
-              <p className="mt-2 text-3xl font-black tracking-wider text-blue-400">
+              <p className="mt-2 text-3xl font-bold text-blue-400">
                 {ticketId}
               </p>
 
-            </div>
-
-            <div className="mt-6 rounded-xl bg-slate-950 p-4 text-sm text-slate-400">
-              Status:{" "}
-              <span className="font-semibold text-blue-400">
-                Pending
-              </span>
+              <p className="mt-3 text-sm text-slate-400">
+                Please save this ticket ID to track your complaint.
+              </p>
             </div>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
 
-              <Link
+              <button
+                onClick={() => {
+                  setSuccess(false);
+                }}
+                className="rounded-xl bg-blue-600 px-6 py-3 font-semibold transition hover:bg-blue-500"
+              >
+                Submit Another Complaint
+              </button>
+
+              <a
                 href={
                   userType === "student"
                     ? "/student"
                     : "/faculty"
                 }
-                className="rounded-xl bg-blue-500 px-6 py-3 font-semibold transition hover:bg-blue-600"
-              >
-                View My Complaints
-              </Link>
-
-              <button
-                onClick={() => {
-                  setSubmitted(false);
-                  setTicketId("");
-                }}
                 className="rounded-xl border border-slate-700 px-6 py-3 font-semibold transition hover:bg-slate-800"
               >
-                Submit Another
-              </button>
+                Back to Dashboard
+              </a>
 
             </div>
-
           </div>
+
         </div>
       </main>
     );
@@ -181,36 +216,40 @@ export default function ComplaintPage() {
 
       <div className="mx-auto max-w-4xl">
 
-        <Link
-          href={
-            userType === "student"
-              ? "/student"
-              : "/faculty"
-          }
-          className="text-sm text-blue-400 hover:text-blue-300"
-        >
-          ← Back to Dashboard
-        </Link>
-
         {/* Header */}
 
-        <div className="mt-8">
+        <div className="mb-8">
 
-          <p className="text-sm font-bold uppercase tracking-[0.25em] text-blue-400">
-            DSCE CONNECT
-          </p>
+          <a
+            href={
+              userType === "student"
+                ? "/student"
+                : "/faculty"
+            }
+            className="text-sm text-blue-400 hover:text-blue-300"
+          >
+            ← Back to Dashboard
+          </a>
 
-          <h1 className="mt-2 text-4xl font-black">
-            {userType === "student"
-              ? "Submit Student Complaint"
-              : "Submit Faculty Complaint"}
-          </h1>
+          <div className="mt-6">
 
-          <p className="mt-3 max-w-2xl text-slate-400">
-            {userType === "student"
-              ? "Report an issue concerning academics, faculty, infrastructure, administration or other campus services."
-              : "Report an issue concerning salary, students, infrastructure, colleagues, administration or other workplace matters."}
-          </p>
+            <div className="mb-3 inline-flex rounded-full border border-blue-400/20 bg-blue-500/10 px-4 py-2 text-sm text-blue-400">
+              {userType === "student"
+                ? "Student Complaint"
+                : "Faculty Complaint"}
+            </div>
+
+            <h1 className="text-4xl font-bold">
+              Report a Problem
+            </h1>
+
+            <p className="mt-3 max-w-2xl text-slate-400">
+              Submit your complaint through DSCE Connect.
+              The administration will review, assign and
+              monitor the complaint until it is resolved.
+            </p>
+
+          </div>
 
         </div>
 
@@ -218,84 +257,75 @@ export default function ComplaintPage() {
 
         <form
           onSubmit={handleSubmit}
-          className="mt-8 rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-2xl sm:p-8"
+          className="rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-2xl sm:p-8"
         >
 
-          <div className="grid gap-6">
+          <div className="grid gap-6 sm:grid-cols-2">
 
-            {/* Complainant */}
-
-            <div className="grid gap-6 sm:grid-cols-2">
-
-              <div>
-
-                <label
-                  htmlFor="complainantName"
-                  className="mb-2 block text-sm font-semibold"
-                >
-                  {userType === "student"
-                    ? "Student Name"
-                    : "Faculty Name"}
-                </label>
-
-                <input
-                  id="complainantName"
-                  name="complainantName"
-                  required
-                  placeholder={
-                    userType === "student"
-                      ? "Enter your name"
-                      : "Enter your name"
-                  }
-                  className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none placeholder:text-slate-600 focus:border-blue-500"
-                />
-
-              </div>
-
-              <div>
-
-                <label
-                  htmlFor="complainantId"
-                  className="mb-2 block text-sm font-semibold"
-                >
-                  {userType === "student"
-                    ? "USN"
-                    : "Employee ID"}
-                </label>
-
-                <input
-                  id="complainantId"
-                  name="complainantId"
-                  required
-                  placeholder={
-                    userType === "student"
-                      ? "Example: 1DS23CS001"
-                      : "Example: FAC001"
-                  }
-                  className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none placeholder:text-slate-600 focus:border-blue-500"
-                />
-
-              </div>
-
-            </div>
-
-            {/* Title */}
+            {/* Name */}
 
             <div>
+              <label className="mb-2 block text-sm font-medium text-slate-300">
+                {userType === "student"
+                  ? "Student Name"
+                  : "Faculty Name"}
+              </label>
 
-              <label
-                htmlFor="title"
-                className="mb-2 block text-sm font-semibold"
-              >
+              <input
+                required
+                value={name}
+                onChange={(e) =>
+                  setName(e.target.value)
+                }
+                placeholder={
+                  userType === "student"
+                    ? "Enter your name"
+                    : "Enter your name"
+                }
+                className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none transition focus:border-blue-500"
+              />
+            </div>
+
+            {/* ID */}
+
+            <div>
+              <label className="mb-2 block text-sm font-medium text-slate-300">
+                {userType === "student"
+                  ? "USN / Student ID"
+                  : "Employee / Faculty ID"}
+              </label>
+
+              <input
+                required
+                value={userId}
+                onChange={(e) =>
+                  setUserId(e.target.value)
+                }
+                placeholder={
+                  userType === "student"
+                    ? "Enter your USN"
+                    : "Enter faculty ID"
+                }
+                className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none transition focus:border-blue-500"
+              />
+            </div>
+
+            {/* Complaint title */}
+
+            <div className="sm:col-span-2">
+
+              <label className="mb-2 block text-sm font-medium text-slate-300">
                 Complaint Title
               </label>
 
               <input
-                id="title"
-                name="title"
                 required
-                placeholder="Briefly describe the issue"
-                className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none placeholder:text-slate-600 focus:border-blue-500"
+                value={title}
+                onChange={(e) =>
+                  setTitle(e.target.value)
+                }
+                placeholder="Briefly describe the problem"
+                className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none transition focus:border-blue-500"
               />
 
             </div>
@@ -304,31 +334,24 @@ export default function ComplaintPage() {
 
             <div>
 
-              <label
-                htmlFor="category"
-                className="mb-2 block text-sm font-semibold"
-              >
+              <label className="mb-2 block text-sm font-medium text-slate-300">
                 Complaint Category
               </label>
 
               <select
-                id="category"
-                name="category"
-                required
-                defaultValue=""
+                value={category}
+                onChange={(e) =>
+                  setCategory(e.target.value)
+                }
                 className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none focus:border-blue-500"
               >
 
-                <option value="" disabled>
-                  Select category
-                </option>
-
-                {categories.map((category) => (
+                {categories.map((item) => (
                   <option
-                    key={category}
-                    value={category}
+                    key={item}
+                    value={item}
                   >
-                    {category}
+                    {item}
                   </option>
                 ))}
 
@@ -336,42 +359,19 @@ export default function ComplaintPage() {
 
             </div>
 
-            {/* Location */}
-
-            <div>
-
-              <label
-                htmlFor="location"
-                className="mb-2 block text-sm font-semibold"
-              >
-                Location
-              </label>
-
-              <input
-                id="location"
-                name="location"
-                required
-                placeholder="Example: Block A, Room 204"
-                className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none placeholder:text-slate-600 focus:border-blue-500"
-              />
-
-            </div>
-
             {/* Priority */}
 
             <div>
 
-              <label
-                htmlFor="priority"
-                className="mb-2 block text-sm font-semibold"
-              >
+              <label className="mb-2 block text-sm font-medium text-slate-300">
                 Priority
               </label>
 
               <select
-                id="priority"
-                name="priority"
-                defaultValue="Medium"
+                value={priority}
+                onChange={(e) =>
+                  setPriority(e.target.value)
+                }
                 className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none focus:border-blue-500"
               >
 
@@ -395,60 +395,109 @@ export default function ComplaintPage() {
 
             </div>
 
-            {/* Description */}
+            {/* Location */}
 
-            <div>
+            <div className="sm:col-span-2">
 
-              <label
-                htmlFor="description"
-                className="mb-2 block text-sm font-semibold"
-              >
-                Detailed Description
+              <label className="mb-2 block text-sm font-medium text-slate-300">
+                Location
               </label>
 
-              <textarea
-                id="description"
-                name="description"
-                required
-                rows={7}
-                placeholder="Describe the issue clearly. Include relevant details that may help the administration take action."
-                className="w-full resize-none rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 leading-7 outline-none placeholder:text-slate-600 focus:border-blue-500"
+              <input
+                value={location}
+                onChange={(e) =>
+                  setLocation(e.target.value)
+                }
+                placeholder="Example: Block A, Room 204, Library..."
+                className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none transition focus:border-blue-500"
               />
 
             </div>
 
-            {/* Notice */}
+            {/* Description */}
 
-            <div className="rounded-2xl border border-blue-500/20 bg-blue-500/5 p-5">
+            <div className="sm:col-span-2">
 
-              <p className="font-semibold text-blue-400">
-                Privacy Notice
-              </p>
+              <label className="mb-2 block text-sm font-medium text-slate-300">
+                Detailed Description
+              </label>
 
-              <p className="mt-2 text-sm leading-6 text-slate-400">
-                Your complaint will be accessible to authorized
-                DSCE Connect administrators for review and necessary
-                action. Other students or faculty members will not
-                have access to your complaint.
-              </p>
+              <textarea
+                required
+                rows={7}
+                value={description}
+                onChange={(e) =>
+                  setDescription(e.target.value)
+                }
+                placeholder="Explain the problem in detail..."
+                className="w-full resize-none rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none transition focus:border-blue-500"
+              />
 
             </div>
 
-            {/* Submit */}
+          </div>
 
-            <button
-              type="submit"
-              className="w-full rounded-xl bg-gradient-to-r from-blue-500 to-cyan-400 px-6 py-4 font-bold shadow-lg shadow-blue-500/20 transition hover:scale-[1.01]"
-            >
-              Submit Complaint
-            </button>
+          {/* Information */}
+
+          <div className="mt-6 rounded-2xl border border-blue-400/10 bg-blue-500/5 p-5">
+
+            <h3 className="font-semibold text-blue-400">
+              What happens after submission?
+            </h3>
+
+            <ul className="mt-3 space-y-2 text-sm text-slate-400">
+
+              <li>
+                • Your complaint receives a unique ticket ID.
+              </li>
+
+              <li>
+                • The administration reviews the complaint.
+              </li>
+
+              <li>
+                • Admin can assign it to the concerned department.
+              </li>
+
+              <li>
+                • Admin can escalate the matter when necessary.
+              </li>
+
+              <li>
+                • You can track the complaint status.
+              </li>
+
+            </ul>
 
           </div>
+
+          {/* Submit */}
+
+          <button
+            type="submit"
+            className="mt-8 w-full rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 px-6 py-4 font-bold shadow-lg transition hover:scale-[1.01] hover:from-blue-500 hover:to-cyan-400"
+          >
+            Submit Complaint
+          </button>
 
         </form>
 
       </div>
 
     </main>
+  );
+}
+
+export default function ComplaintPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-slate-950 text-white">
+          Loading complaint form...
+        </div>
+      }
+    >
+      <ComplaintForm />
+    </Suspense>
   );
 }
