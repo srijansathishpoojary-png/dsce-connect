@@ -1,413 +1,501 @@
 "use client";
 
+import Link from "next/link";
+import { useEffect, useState } from "react";
+
+type Complaint = {
+  id: string;
+  title: string;
+  category: string;
+  location: string;
+  priority: string;
+  description: string;
+  studentName: string;
+  usn: string;
+  status: string;
+  createdAt: string;
+};
+
 export default function StudentDashboard() {
+  const [complaints, setComplaints] = useState<Complaint[]>([]);
+
+  useEffect(() => {
+    loadComplaints();
+  }, []);
+
+  function loadComplaints() {
+    const savedComplaints = localStorage.getItem("dsceComplaints");
+
+    if (savedComplaints) {
+      setComplaints(JSON.parse(savedComplaints));
+    } else {
+      setComplaints([]);
+    }
+  }
+
+  function getStatusClass(status: string) {
+    switch (status) {
+      case "Resolved":
+        return "bg-emerald-500/10 text-emerald-400 border-emerald-500/30";
+
+      case "In Progress":
+        return "bg-yellow-500/10 text-yellow-400 border-yellow-500/30";
+
+      case "Rejected":
+        return "bg-red-500/10 text-red-400 border-red-500/30";
+
+      default:
+        return "bg-blue-500/10 text-blue-400 border-blue-500/30";
+    }
+  }
+
+  function getPriorityClass(priority: string) {
+    switch (priority) {
+      case "Urgent":
+        return "text-red-400";
+
+      case "High":
+        return "text-orange-400";
+
+      case "Low":
+        return "text-slate-400";
+
+      default:
+        return "text-yellow-400";
+    }
+  }
+
   return (
     <main className="min-h-screen bg-slate-950 text-white">
 
-      {/* HEADER */}
+      {/* ================= HEADER ================= */}
 
-      <header className="border-b border-white/10 bg-slate-950">
-
+      <header className="border-b border-slate-800 bg-[#031426]">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
 
-          <a
-            href="/"
-            className="text-xl font-bold tracking-tight"
-          >
-            DSCE<span className="text-blue-400">CONNECT</span>
-          </a>
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.25em] text-blue-400">
+              DSCE CONNECT
+            </p>
 
-          <div className="flex items-center gap-4">
+            <h1 className="mt-1 text-2xl font-bold">
+              Student Dashboard
+            </h1>
+          </div>
 
-            <a
-              href="/login"
-              className="text-sm text-slate-400 transition hover:text-white"
+          <div className="flex items-center gap-3">
+
+            <Link
+              href="/complaint"
+              className="rounded-xl bg-gradient-to-r from-blue-500 to-cyan-400 px-5 py-3 text-sm font-bold transition hover:scale-105"
             >
-              Logout
-            </a>
+              + New Complaint
+            </Link>
 
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500 font-semibold">
-              S
-            </div>
+            <Link
+              href="/"
+              className="rounded-xl border border-slate-700 px-5 py-3 text-sm font-semibold transition hover:bg-slate-800"
+            >
+              Home
+            </Link>
 
           </div>
 
         </div>
-
       </header>
 
-      {/* MAIN */}
+
+      {/* ================= CONTENT ================= */}
 
       <div className="mx-auto max-w-7xl px-6 py-10">
 
-        {/* WELCOME */}
+        {/* Welcome */}
 
-        <section className="mb-10">
+        <section className="mb-8 rounded-3xl border border-blue-500/20 bg-gradient-to-r from-blue-900/30 to-cyan-900/20 p-8">
 
-          <p className="text-sm font-medium text-blue-400">
-            STUDENT PORTAL
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-blue-400">
+            Welcome
           </p>
 
-          <h1 className="mt-2 text-3xl font-bold sm:text-4xl">
-            Welcome back, Student
-          </h1>
+          <h2 className="mt-2 text-3xl font-black">
+            Student Portal 👋
+          </h2>
 
           <p className="mt-3 max-w-2xl text-slate-400">
-            Report campus problems, track your complaints and stay
-            updated on their progress.
+            Manage your campus complaints, track ticket
+            status and stay connected with DSCE administration.
           </p>
 
         </section>
 
-        {/* QUICK ACTIONS */}
 
-        <section className="mb-10">
+        {/* ================= STATISTICS ================= */}
 
-          <h2 className="mb-5 text-xl font-semibold">
+        <section className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+
+          <StatCard
+            title="Total Complaints"
+            value={complaints.length}
+            icon="📋"
+          />
+
+          <StatCard
+            title="Pending"
+            value={
+              complaints.filter(
+                (complaint) => complaint.status === "Pending"
+              ).length
+            }
+            icon="⏳"
+          />
+
+          <StatCard
+            title="In Progress"
+            value={
+              complaints.filter(
+                (complaint) => complaint.status === "In Progress"
+              ).length
+            }
+            icon="🔄"
+          />
+
+          <StatCard
+            title="Resolved"
+            value={
+              complaints.filter(
+                (complaint) => complaint.status === "Resolved"
+              ).length
+            }
+            icon="✅"
+          />
+
+        </section>
+
+
+        {/* ================= QUICK ACTIONS ================= */}
+
+        <section className="mt-10">
+
+          <h2 className="text-xl font-bold">
             Quick Actions
           </h2>
 
-          <div className="grid gap-5 md:grid-cols-3">
+          <div className="mt-4 grid gap-4 md:grid-cols-3">
 
-            {/* REPORT PROBLEM */}
-
-            <a
+            <Link
               href="/complaint"
-              className="group rounded-2xl border border-blue-400/20 bg-blue-400/[0.05] p-6 transition hover:border-blue-400/50 hover:bg-blue-400/[0.08]"
+              className="group rounded-2xl border border-slate-800 bg-slate-900 p-6 transition hover:-translate-y-1 hover:border-blue-500/50"
             >
-
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-500 text-xl">
-                +
+              <div className="text-3xl">
+                📝
               </div>
 
-              <h3 className="mt-5 text-lg font-semibold">
-                Report a Problem
+              <h3 className="mt-4 text-lg font-bold">
+                Submit Complaint
               </h3>
 
-              <p className="mt-2 text-sm leading-6 text-slate-500">
-                Submit a new complaint about infrastructure,
-                academics, transport, hostel or other campus issues.
+              <p className="mt-2 text-sm leading-6 text-slate-400">
+                Report a new campus issue or problem.
               </p>
 
-              <p className="mt-5 text-sm font-medium text-blue-400">
-                Submit Complaint →
+              <p className="mt-4 text-sm font-semibold text-blue-400">
+                Submit now →
               </p>
+            </Link>
 
-            </a>
-
-            {/* MY COMPLAINTS */}
 
             <a
-              href="/student/tickets"
-              className="group rounded-2xl border border-white/10 bg-white/[0.03] p-6 transition hover:border-white/20 hover:bg-white/[0.06]"
+              href="#complaints"
+              className="group rounded-2xl border border-slate-800 bg-slate-900 p-6 transition hover:-translate-y-1 hover:border-cyan-500/50"
             >
-
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-500/20 text-xl">
+              <div className="text-3xl">
                 🎫
               </div>
 
-              <h3 className="mt-5 text-lg font-semibold">
-                My Complaints
+              <h3 className="mt-4 text-lg font-bold">
+                Track Complaints
               </h3>
-
-              <p className="mt-2 text-sm leading-6 text-slate-500">
-                View your submitted complaints and track their
-                current status and progress.
-              </p>
-
-              <p className="mt-5 text-sm font-medium text-purple-400">
-                View Tickets →
-              </p>
-
-            </a>
-
-            {/* NOTIFICATIONS */}
-
-            <a
-              href="#notifications"
-              className="group rounded-2xl border border-white/10 bg-white/[0.03] p-6 transition hover:border-white/20 hover:bg-white/[0.06]"
-            >
-
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-yellow-500/20 text-xl">
-                🔔
-              </div>
-
-              <h3 className="mt-5 text-lg font-semibold">
-                Notifications
-              </h3>
-
-              <p className="mt-2 text-sm leading-6 text-slate-500">
-                Check updates and responses related to your
-                complaints.
-              </p>
-
-              <p className="mt-5 text-sm font-medium text-yellow-400">
-                View Updates →
-              </p>
-
-            </a>
-
-          </div>
-
-        </section>
-
-        {/* STATISTICS */}
-
-        <section className="mb-10">
-
-          <h2 className="mb-5 text-xl font-semibold">
-            Complaint Overview
-          </h2>
-
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-
-            <StatCard
-              number="3"
-              title="Total Complaints"
-              description="All submitted complaints"
-            />
-
-            <StatCard
-              number="1"
-              title="In Progress"
-              description="Currently being handled"
-            />
-
-            <StatCard
-              number="1"
-              title="Under Review"
-              description="Awaiting action"
-            />
-
-            <StatCard
-              number="1"
-              title="Resolved"
-              description="Successfully completed"
-            />
-
-          </div>
-
-        </section>
-
-        {/* RECENT COMPLAINTS */}
-
-        <section className="mb-10">
-
-          <div className="mb-5 flex items-end justify-between">
-
-            <div>
-
-              <h2 className="text-xl font-semibold">
-                Recent Complaints
-              </h2>
-
-              <p className="mt-1 text-sm text-slate-500">
-                Your latest submitted complaints.
-              </p>
-
-            </div>
-
-            <a
-              href="/student/tickets"
-              className="text-sm font-medium text-blue-400 hover:text-blue-300"
-            >
-              View All →
-            </a>
-
-          </div>
-
-          <div className="overflow-hidden rounded-2xl border border-white/10">
-
-            {/* TICKET 1 */}
-
-            <a
-              href="/student/tickets"
-              className="block border-b border-white/10 p-5 transition hover:bg-white/[0.04]"
-            >
-
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-
-                <div>
-
-                  <p className="text-xs font-medium text-blue-400">
-                    DSC-2026-00125
-                  </p>
-
-                  <h3 className="mt-2 font-semibold">
-                    Projector not working in Room 204
-                  </h3>
-
-                  <p className="mt-2 text-xs text-slate-500">
-                    Infrastructure • Block A, Room 204
-                  </p>
-
-                </div>
-
-                <StatusBadge status="In Progress" />
-
-              </div>
-
-            </a>
-
-            {/* TICKET 2 */}
-
-            <a
-              href="/student/tickets"
-              className="block border-b border-white/10 p-5 transition hover:bg-white/[0.04]"
-            >
-
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-
-                <div>
-
-                  <p className="text-xs font-medium text-blue-400">
-                    DSC-2026-00118
-                  </p>
-
-                  <h3 className="mt-2 font-semibold">
-                    Lost student ID card
-                  </h3>
-
-                  <p className="mt-2 text-xs text-slate-500">
-                    Lost & Found • Main Library
-                  </p>
-
-                </div>
-
-                <StatusBadge status="Under Review" />
-
-              </div>
-
-            </a>
-
-            {/* TICKET 3 */}
-
-            <a
-              href="/student/tickets"
-              className="block p-5 transition hover:bg-white/[0.04]"
-            >
-
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-
-                <div>
-
-                  <p className="text-xs font-medium text-blue-400">
-                    DSC-2026-00105
-                  </p>
-
-                  <h3 className="mt-2 font-semibold">
-                    Classroom fan not working
-                  </h3>
-
-                  <p className="mt-2 text-xs text-slate-500">
-                    Infrastructure • Block C, Room 101
-                  </p>
-
-                </div>
-
-                <StatusBadge status="Resolved" />
-
-              </div>
-
-            </a>
-
-          </div>
-
-        </section>
-
-        {/* INFORMATION */}
-
-        <section
-          id="notifications"
-          className="rounded-2xl border border-blue-400/10 bg-blue-400/[0.04] p-6 sm:p-8"
-        >
-
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
-
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-500/20 text-xl">
-              ℹ️
-            </div>
-
-            <div>
-
-              <h2 className="text-lg font-semibold">
-                How DSCE Connect works
-              </h2>
 
               <p className="mt-2 text-sm leading-6 text-slate-400">
-                Submit your campus issue through the complaint form.
-                Once submitted, you will receive a unique ticket ID.
-                You can use the ticket tracking page to follow its
-                progress from submission to resolution.
+                Check the status of your submitted complaints.
               </p>
+
+              <p className="mt-4 text-sm font-semibold text-cyan-400">
+                View tickets →
+              </p>
+            </a>
+
+
+            <Link
+              href="/"
+              className="group rounded-2xl border border-slate-800 bg-slate-900 p-6 transition hover:-translate-y-1 hover:border-blue-500/50"
+            >
+              <div className="text-3xl">
+                🏠
+              </div>
+
+              <h3 className="mt-4 text-lg font-bold">
+                Campus Home
+              </h3>
+
+              <p className="mt-2 text-sm leading-6 text-slate-400">
+                Return to the DSCE Connect homepage.
+              </p>
+
+              <p className="mt-4 text-sm font-semibold text-blue-400">
+                Go home →
+              </p>
+            </Link>
+
+          </div>
+
+        </section>
+
+
+        {/* ================= MY COMPLAINTS ================= */}
+
+        <section
+          id="complaints"
+          className="mt-12"
+        >
+
+          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-blue-400">
+                Ticket Management
+              </p>
+
+              <h2 className="mt-2 text-2xl font-bold">
+                My Complaints
+              </h2>
+            </div>
+
+            <button
+              onClick={loadComplaints}
+              className="rounded-xl border border-slate-700 px-4 py-2 text-sm font-semibold transition hover:bg-slate-800"
+            >
+              ↻ Refresh
+            </button>
+
+          </div>
+
+
+          {/* No complaints */}
+
+          {complaints.length === 0 ? (
+
+            <div className="mt-6 rounded-3xl border border-dashed border-slate-700 bg-slate-900/50 p-12 text-center">
+
+              <div className="text-5xl">
+                📭
+              </div>
+
+              <h3 className="mt-5 text-xl font-bold">
+                No complaints yet
+              </h3>
+
+              <p className="mx-auto mt-3 max-w-md text-slate-400">
+                You haven't submitted any complaints.
+                If you find a campus issue, you can report it
+                using the button below.
+              </p>
+
+              <Link
+                href="/complaint"
+                className="mt-6 inline-block rounded-xl bg-blue-500 px-6 py-3 font-semibold transition hover:bg-blue-600"
+              >
+                Submit Your First Complaint
+              </Link>
 
             </div>
 
-          </div>
+          ) : (
+
+            <div className="mt-6 space-y-5">
+
+              {complaints
+                .slice()
+                .reverse()
+                .map((complaint) => (
+
+                  <div
+                    key={complaint.id}
+                    className="rounded-3xl border border-slate-800 bg-slate-900 p-6 transition hover:border-blue-500/30"
+                  >
+
+                    {/* Ticket Header */}
+
+                    <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
+
+                      <div>
+
+                        <div className="flex flex-wrap items-center gap-3">
+
+                          <span className="rounded-lg bg-blue-500/10 px-3 py-1 text-sm font-bold text-blue-400">
+                            {complaint.id}
+                          </span>
+
+                          <span
+                            className={`rounded-lg border px-3 py-1 text-xs font-semibold ${getStatusClass(
+                              complaint.status
+                            )}`}
+                          >
+                            {complaint.status}
+                          </span>
+
+                        </div>
+
+                        <h3 className="mt-4 text-xl font-bold">
+                          {complaint.title}
+                        </h3>
+
+                      </div>
+
+                      <div className="text-left md:text-right">
+
+                        <p className="text-xs text-slate-500">
+                          Submitted
+                        </p>
+
+                        <p className="mt-1 text-sm text-slate-400">
+                          {complaint.createdAt}
+                        </p>
+
+                      </div>
+
+                    </div>
+
+
+                    {/* Details */}
+
+                    <div className="mt-6 grid gap-4 border-t border-slate-800 pt-6 sm:grid-cols-2 lg:grid-cols-4">
+
+                      <div>
+                        <p className="text-xs uppercase tracking-wide text-slate-500">
+                          Category
+                        </p>
+
+                        <p className="mt-1 font-semibold">
+                          {complaint.category}
+                        </p>
+                      </div>
+
+
+                      <div>
+                        <p className="text-xs uppercase tracking-wide text-slate-500">
+                          Location
+                        </p>
+
+                        <p className="mt-1 font-semibold">
+                          {complaint.location}
+                        </p>
+                      </div>
+
+
+                      <div>
+                        <p className="text-xs uppercase tracking-wide text-slate-500">
+                          Priority
+                        </p>
+
+                        <p
+                          className={`mt-1 font-semibold ${getPriorityClass(
+                            complaint.priority
+                          )}`}
+                        >
+                          {complaint.priority}
+                        </p>
+                      </div>
+
+
+                      <div>
+                        <p className="text-xs uppercase tracking-wide text-slate-500">
+                          Student
+                        </p>
+
+                        <p className="mt-1 font-semibold">
+                          {complaint.studentName}
+                        </p>
+
+                      </div>
+
+                    </div>
+
+
+                    {/* Description */}
+
+                    <div className="mt-6 rounded-2xl bg-slate-950 p-5">
+
+                      <p className="text-xs uppercase tracking-wide text-slate-500">
+                        Description
+                      </p>
+
+                      <p className="mt-2 leading-7 text-slate-300">
+                        {complaint.description}
+                      </p>
+
+                    </div>
+
+                  </div>
+
+                ))}
+
+            </div>
+
+          )}
 
         </section>
 
       </div>
+
+
+      {/* ================= FOOTER ================= */}
+
+      <footer className="mt-10 border-t border-slate-800 bg-[#031426] px-6 py-8">
+
+        <div className="mx-auto max-w-7xl text-center text-sm text-slate-500">
+
+          © 2026 DSCE Connect • Student Portal
+
+        </div>
+
+      </footer>
 
     </main>
   );
 }
 
 
-/* STAT CARD */
+/* ================= STAT CARD ================= */
 
 function StatCard({
-  number,
   title,
-  description,
+  value,
+  icon,
 }: {
-  number: string;
   title: string;
-  description: string;
+  value: number;
+  icon: string;
 }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+    <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
 
-      <p className="text-3xl font-bold">
-        {number}
-      </p>
+      <div className="flex items-center justify-between">
 
-      <p className="mt-2 text-sm font-medium">
-        {title}
-      </p>
+        <p className="text-sm text-slate-400">
+          {title}
+        </p>
 
-      <p className="mt-1 text-xs text-slate-600">
-        {description}
+        <span className="text-2xl">
+          {icon}
+        </span>
+
+      </div>
+
+      <p className="mt-4 text-4xl font-black">
+        {value}
       </p>
 
     </div>
-  );
-}
-
-
-/* STATUS BADGE */
-
-function StatusBadge({
-  status,
-}: {
-  status: "Submitted" | "Under Review" | "Assigned" | "In Progress" | "Resolved";
-}) {
-  const style =
-    status === "Resolved"
-      ? "bg-green-500/10 text-green-400"
-      : status === "In Progress"
-      ? "bg-yellow-500/10 text-yellow-400"
-      : status === "Under Review"
-      ? "bg-blue-500/10 text-blue-400"
-      : status === "Assigned"
-      ? "bg-purple-500/10 text-purple-400"
-      : "bg-slate-500/10 text-slate-400";
-
-  return (
-    <span
-      className={`whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium ${style}`}
-    >
-      {status}
-    </span>
   );
 }
