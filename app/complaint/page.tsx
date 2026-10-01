@@ -3,6 +3,19 @@
 import { FormEvent, useState } from "react";
 import Link from "next/link";
 
+type Complaint = {
+  id: string;
+  title: string;
+  category: string;
+  location: string;
+  priority: string;
+  description: string;
+  studentName: string;
+  usn: string;
+  status: string;
+  createdAt: string;
+};
+
 export default function ComplaintPage() {
   const [submitted, setSubmitted] = useState(false);
   const [ticketId, setTicketId] = useState("");
@@ -10,7 +23,36 @@ export default function ComplaintPage() {
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    const form = new FormData(event.currentTarget);
+
     const id = `DSCE-${Date.now().toString().slice(-6)}`;
+
+    const complaint: Complaint = {
+      id,
+      title: String(form.get("title") || ""),
+      category: String(form.get("category") || ""),
+      location: String(form.get("location") || ""),
+      priority: String(form.get("priority") || "Medium"),
+      description: String(form.get("description") || ""),
+      studentName: String(form.get("studentName") || ""),
+      usn: String(form.get("usn") || ""),
+      status: "Pending",
+      createdAt: new Date().toLocaleString(),
+    };
+
+    // Get existing complaints
+    const existingComplaints: Complaint[] = JSON.parse(
+      localStorage.getItem("dsceComplaints") || "[]"
+    );
+
+    // Add new complaint
+    existingComplaints.push(complaint);
+
+    // Save complaints
+    localStorage.setItem(
+      "dsceComplaints",
+      JSON.stringify(existingComplaints)
+    );
 
     setTicketId(id);
     setSubmitted(true);
@@ -39,7 +81,7 @@ export default function ComplaintPage() {
             </h1>
 
             <p className="mt-3 text-slate-400">
-              Your complaint has been registered with DSCE Connect.
+              Your complaint has been registered in DSCE Connect.
             </p>
 
             <div className="mt-8 rounded-2xl border border-blue-500/30 bg-blue-500/10 p-6">
@@ -50,12 +92,16 @@ export default function ComplaintPage() {
               </p>
             </div>
 
+            <p className="mt-6 text-sm text-slate-500">
+              Status: Pending
+            </p>
+
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
               <Link
                 href="/student"
                 className="rounded-xl bg-blue-500 px-6 py-3 font-semibold transition hover:bg-blue-600"
               >
-                Go to Dashboard
+                View My Complaints
               </Link>
 
               <button
@@ -102,7 +148,7 @@ export default function ComplaintPage() {
           </div>
         </div>
 
-        {/* Form */}
+        {/* Complaint Form */}
         <form
           onSubmit={handleSubmit}
           className="rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-2xl sm:p-8"
@@ -141,20 +187,47 @@ export default function ComplaintPage() {
                 name="category"
                 required
                 defaultValue=""
-                className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none transition focus:border-blue-500"
               >
                 <option value="" disabled>
                   Select a category
                 </option>
-                <option value="Infrastructure">Infrastructure</option>
-                <option value="Classroom">Classroom</option>
-                <option value="Electrical">Electrical</option>
-                <option value="Internet">Internet / Wi-Fi</option>
-                <option value="Cleanliness">Cleanliness</option>
-                <option value="Hostel">Hostel</option>
-                <option value="Transport">Transport</option>
-                <option value="Academic">Academic</option>
-                <option value="Other">Other</option>
+
+                <option value="Infrastructure">
+                  Infrastructure
+                </option>
+
+                <option value="Classroom">
+                  Classroom
+                </option>
+
+                <option value="Electrical">
+                  Electrical
+                </option>
+
+                <option value="Internet">
+                  Internet / Wi-Fi
+                </option>
+
+                <option value="Cleanliness">
+                  Cleanliness
+                </option>
+
+                <option value="Hostel">
+                  Hostel
+                </option>
+
+                <option value="Transport">
+                  Transport
+                </option>
+
+                <option value="Academic">
+                  Academic
+                </option>
+
+                <option value="Other">
+                  Other
+                </option>
               </select>
             </div>
 
@@ -173,7 +246,7 @@ export default function ComplaintPage() {
                 type="text"
                 required
                 placeholder="Example: Block A, Room 204"
-                className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none transition placeholder:text-slate-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none transition placeholder:text-slate-600 focus:border-blue-500"
               />
             </div>
 
@@ -190,7 +263,7 @@ export default function ComplaintPage() {
                 id="priority"
                 name="priority"
                 defaultValue="Medium"
-                className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none transition focus:border-blue-500"
               >
                 <option value="Low">Low</option>
                 <option value="Medium">Medium</option>
@@ -214,11 +287,11 @@ export default function ComplaintPage() {
                 required
                 rows={6}
                 placeholder="Describe the problem in detail..."
-                className="w-full resize-none rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none transition placeholder:text-slate-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                className="w-full resize-none rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none transition placeholder:text-slate-600 focus:border-blue-500"
               />
             </div>
 
-            {/* Student details */}
+            {/* Student Details */}
             <div className="grid gap-6 sm:grid-cols-2">
               <div>
                 <label
@@ -234,7 +307,7 @@ export default function ComplaintPage() {
                   type="text"
                   required
                   placeholder="Your name"
-                  className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none transition placeholder:text-slate-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                  className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none transition placeholder:text-slate-600 focus:border-blue-500"
                 />
               </div>
 
@@ -252,7 +325,7 @@ export default function ComplaintPage() {
                   type="text"
                   required
                   placeholder="Example: 1DS23CS001"
-                  className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none transition placeholder:text-slate-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                  className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none transition placeholder:text-slate-600 focus:border-blue-500"
                 />
               </div>
             </div>
