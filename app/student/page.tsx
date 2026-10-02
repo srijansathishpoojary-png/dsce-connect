@@ -7,39 +7,75 @@ type Complaint = {
   complainantType: "student" | "faculty";
   complainantName: string;
   complainantId: string;
+
   title: string;
   category: string;
   description: string;
   location: string;
   priority: string;
+
   status: string;
   submittedAt: string;
+
   assignedDepartment?: string;
   assignedAuthority?: string;
   dueDate?: string;
+
   escalationLevel?: number;
   escalatedTo?: string;
   escalationReason?: string;
+
   adminRemarks?: string;
   resolutionDetails?: string;
-  resolvedAt?: string;
+
+  updatedAt?: string;
 };
 
 const STORAGE_KEY = "dsceComplaints";
+
+const categories = [
+  "Academic",
+  "Faculty",
+  "Infrastructure",
+  "Examination",
+  "Fees / Accounts",
+  "Hostel",
+  "Transport",
+  "IT / Technical",
+  "Library",
+  "Harassment",
+  "Other",
+];
+
+const priorities = ["Low", "Medium", "High", "Urgent"];
 
 function formatDate(date?: string) {
   if (!date) return "Not set";
 
   const parsed = new Date(date);
 
-  if (Number.isNaN(parsed.getTime())) {
-    return date;
-  }
+  if (Number.isNaN(parsed.getTime())) return date;
 
   return parsed.toLocaleDateString("en-IN", {
     day: "2-digit",
     month: "short",
     year: "numeric",
+  });
+}
+
+function formatDateTime(date?: string) {
+  if (!date) return "Not available";
+
+  const parsed = new Date(date);
+
+  if (Number.isNaN(parsed.getTime())) return date;
+
+  return parsed.toLocaleString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 }
 
@@ -92,23 +128,30 @@ function priorityClass(priority: string) {
 
 export default function StudentDashboard() {
   const [complaints, setComplaints] = useState<Complaint[]>([]);
+  const [selectedComplaint, setSelectedComplaint] =
+    useState<Complaint | null>(null);
+
+  const [showForm, setShowForm] = useState(false);
 
   const [studentName, setStudentName] =
     useState("Student");
 
   const [studentId, setStudentId] =
+    useState("Student");
+
+  const [title, setTitle] = useState("");
+  const [category, setCategory] =
+    useState(categories[0]);
+  const [description, setDescription] =
+    useState("");
+  const [location, setLocation] =
+    useState("");
+  const [priority, setPriority] =
+    useState("Medium");
+
+  const [submitMessage, setSubmitMessage] =
     useState("");
 
-  const [selectedComplaint, setSelectedComplaint] =
-    useState<Complaint | null>(null);
-
-  /*
-    Load student information.
-
-    If your login page already stores the
-    student's details in localStorage, this
-    will automatically use them.
-  */
   useEffect(() => {
     const savedName =
       localStorage.getItem("studentName");
@@ -148,65 +191,168 @@ export default function StudentDashboard() {
   }
 
   /*
-    IMPORTANT:
-    Only complaints belonging to this student
-    are displayed.
-  */
+   * For development mode we identify the student
+   * using the stored student ID/name.
+   *
+   * If no student ID is stored, all student complaints
+   * are shown. This makes the prototype easier to test.
+   */
   const myComplaints = useMemo(() => {
-    return complaints.filter((complaint) => {
-      if (complaint.complainantType !== "student") {
-        return false;
-      }
+    const studentComplaints = complaints.filter(
+      (complaint) =>
+        complaint.complainantType === "student"
+    );
 
-      /*
-        If a student ID is available,
-        use it to identify the student.
-      */
-      if (studentId) {
-        return (
+    if (studentId && studentId !== "Student") {
+      return studentComplaints.filter(
+        (complaint) =>
           complaint.complainantId === studentId
-        );
+      );
+    }
+
+    if (studentName && studentName !== "Student") {
+      return studentComplaints.filter(
+        (complaint) =>
+          complaint.complainantName === studentName
+      );
+    }
+
+    return studentComplaints;
+  }, [complaints, studentId, studentName]);
+
+  const pendingCount = myComplaints.filter(
+    (complaint) =>
+      complaint.status === "Pending"
+  ).length;
+
+  const activeCount = myComplaints.filter(
+    (complaint) =>
+      complaint.status === "Under Review" ||
+      complaint.status === "Assigned" ||
+      complaint.status === "In Progress"
+  ).length;
+
+  const escalatedCount = myComplaints.filter(
+    (complaint) =>
+      complaint.status === "Escalated"
+  ).length;
+
+  const resolvedCount = myComplaints.filter(
+    (complaint) =>
+      complaint.status === "Resolved" ||
+      complaint.status === "Closed"
+  ).length;
+
+  function submitComplaint() {
+    if (!title.trim()) {
+      setSubmitMessage(
+        "Please enter a complaint title."
+      );
+      return;
+    }
+
+    if (!description.trim()) {
+      setSubmitMessage(
+        "Please describe your complaint."
+      );
+      return;
+    }
+
+    const newComplaint: Complaint = {
+      id: `CMP-${Date.now()}`,
+
+      complainantType: "student",
+
+      complainantName:
+        studentName || "Student",
+
+      complainantId:
+        studentId || "Student",
+
+      title: title.trim(),
+
+      category,
+
+      description: description.trim(),
+
+      location:
+        location.trim() || "Not provided",
+
+      priority,
+
+      status: "Pending",
+
+      submittedAt:
+        new Date().toISOString(),
+
+      assignedDepartment: "",
+
+      assignedAuthority: "",
+
+      dueDate: "",
+
+      escalationLevel: 0,
+
+      escalatedTo: "",
+
+      escalationReason: "",
+
+      adminRemarks: "",
+
+      resolutionDetails: "",
+
+      updatedAt:
+        new Date().toISOString(),
+    };
+
+    const stored =
+      localStorage.getItem(STORAGE_KEY);
+
+    let existing: Complaint[] = [];
+
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+
+        if (Array.isArray(parsed)) {
+          existing = parsed;
+        }
+      } catch {
+        existing = [];
       }
+    }
 
-      /*
-        If no ID is stored yet, show nothing
-        rather than exposing another student's
-        complaints.
-      */
-      return false;
-    });
-  }, [complaints, studentId]);
+    const updated = [
+      newComplaint,
+      ...existing,
+    ];
 
-  const totalComplaints =
-    myComplaints.length;
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify(updated)
+    );
 
-  const pendingComplaints =
-    myComplaints.filter(
-      (complaint) =>
-        complaint.status === "Pending"
-    ).length;
+    setComplaints(updated);
 
-  const activeComplaints =
-    myComplaints.filter(
-      (complaint) =>
-        complaint.status ===
-          "Under Review" ||
-        complaint.status ===
-          "Assigned" ||
-        complaint.status ===
-          "In Progress" ||
-        complaint.status ===
-          "Escalated"
-    ).length;
+    setTitle("");
+    setCategory(categories[0]);
+    setDescription("");
+    setLocation("");
+    setPriority("Medium");
 
-  const resolvedComplaints =
-    myComplaints.filter(
-      (complaint) =>
-        complaint.status ===
-          "Resolved" ||
-        complaint.status ===
-          "Closed"
-    ).length;
+    setSubmitMessage(
+      "Complaint submitted successfully."
+    );
+
+    setTimeout(() => {
+      setSubmitMessage("");
+      setShowForm(false);
+    }, 1800);
+  }
+
+  function refreshComplaints() {
+    loadComplaints();
+  }
 
   return (
     <main className="min-h-screen bg-slate-950 text-white">
@@ -219,7 +365,7 @@ export default function StudentDashboard() {
 
           <div className="flex items-center gap-3">
 
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-cyan-400 text-xl font-black">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-cyan-500 text-xl font-black">
               D
             </div>
 
@@ -229,7 +375,7 @@ export default function StudentDashboard() {
                 DSCE CONNECT
               </h1>
 
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-blue-400">
                 Student Portal
               </p>
 
@@ -246,7 +392,7 @@ export default function StudentDashboard() {
               </p>
 
               <p className="text-xs text-slate-500">
-                {studentId || "Student"}
+                {studentId}
               </p>
 
             </div>
@@ -264,13 +410,13 @@ export default function StudentDashboard() {
 
       </header>
 
-      {/* MAIN */}
+      {/* CONTENT */}
 
       <div className="mx-auto max-w-7xl px-6 py-8">
 
         {/* WELCOME */}
 
-        <section className="rounded-3xl border border-blue-400/20 bg-gradient-to-br from-blue-950/60 via-slate-900 to-slate-900 p-7">
+        <section className="rounded-3xl border border-blue-400/20 bg-gradient-to-br from-blue-950/50 via-slate-900 to-slate-900 p-7">
 
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-blue-400">
             Student Dashboard
@@ -280,22 +426,19 @@ export default function StudentDashboard() {
             Welcome, {studentName}
           </h2>
 
-          <p className="mt-3 max-w-2xl text-slate-400">
-            Submit complaints, monitor their progress and
-            stay updated on actions taken by the
-            administration.
+          <p className="mt-3 max-w-3xl text-slate-400">
+            Submit complaints, track their progress and
+            view administrative actions taken by DSCE.
           </p>
 
-          <div className="mt-6">
-
-            <a
-              href="/complaint?type=student"
-              className="inline-flex rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 px-6 py-3 font-bold transition hover:from-blue-500 hover:to-cyan-400"
-            >
-              + Submit New Complaint
-            </a>
-
-          </div>
+          <button
+            onClick={() =>
+              setShowForm(true)
+            }
+            className="mt-6 rounded-xl bg-blue-600 px-6 py-3 font-bold transition hover:bg-blue-500"
+          >
+            + Submit New Complaint
+          </button>
 
         </section>
 
@@ -303,52 +446,66 @@ export default function StudentDashboard() {
 
         <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
 
-          <DashboardCard
-            title="My Complaints"
-            value={totalComplaints}
+          <StatCard
+            title="Total Complaints"
+            value={myComplaints.length}
             icon="📋"
           />
 
-          <DashboardCard
+          <StatCard
             title="Pending"
-            value={pendingComplaints}
+            value={pendingCount}
             icon="⏳"
           />
 
-          <DashboardCard
+          <StatCard
             title="Active"
-            value={activeComplaints}
+            value={activeCount}
             icon="🔄"
           />
 
-          <DashboardCard
-            title="Resolved"
-            value={resolvedComplaints}
+          <StatCard
+            title="Escalated"
+            value={escalatedCount}
+            icon="🚨"
+          />
+
+          <StatCard
+            title="Resolved / Closed"
+            value={resolvedCount}
             icon="✅"
           />
 
         </section>
 
-        {/* COMPLAINTS */}
+        {/* REFRESH */}
 
-        <section className="mt-8">
+        <div className="mt-8 flex items-center justify-between">
 
-          <div className="mb-5 flex items-center justify-between">
+          <div>
 
-            <div>
+            <h3 className="text-2xl font-bold">
+              My Complaints
+            </h3>
 
-              <h3 className="text-2xl font-bold">
-                My Complaints
-              </h3>
-
-              <p className="mt-1 text-sm text-slate-500">
-                Only complaints submitted by you are
-                displayed here.
-              </p>
-
-            </div>
+            <p className="mt-1 text-sm text-slate-500">
+              Track every complaint submitted by you.
+            </p>
 
           </div>
+
+          <button
+            onClick={refreshComplaints}
+            className="rounded-xl border border-slate-700 px-4 py-2 text-sm font-semibold transition hover:bg-slate-800"
+          >
+            ↻ Refresh
+          </button>
+
+        </div>
+
+        {/* COMPLAINT LIST */}
+
+        <section className="mt-5 space-y-4">
 
           {myComplaints.length === 0 ? (
 
@@ -362,112 +519,122 @@ export default function StudentDashboard() {
                 No complaints yet
               </h3>
 
-              <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
-                You haven't submitted any complaints yet.
-                If you have an issue, you can report it
-                using the button below.
+              <p className="mt-2 text-sm text-slate-500">
+                Submit your first complaint using the
+                button above.
               </p>
-
-              <a
-                href="/complaint?type=student"
-                className="mt-6 inline-flex rounded-xl bg-blue-600 px-6 py-3 font-semibold transition hover:bg-blue-500"
-              >
-                Submit a Complaint
-              </a>
 
             </div>
 
           ) : (
 
-            <div className="space-y-4">
+            myComplaints.map(
+              (complaint) => (
 
-              {myComplaints.map(
-                (complaint) => (
+                <article
+                  key={complaint.id}
+                  className="rounded-2xl border border-slate-800 bg-slate-900 p-5 transition hover:border-blue-400/30"
+                >
 
-                  <button
-                    key={complaint.id}
-                    onClick={() =>
-                      setSelectedComplaint(
-                        complaint
-                      )
-                    }
-                    className="w-full rounded-2xl border border-slate-800 bg-slate-900 p-5 text-left transition hover:border-blue-500/40"
-                  >
+                  <div className="flex flex-col justify-between gap-5 lg:flex-row">
 
-                    <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex-1">
 
-                      <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-3">
 
-                        <div className="flex flex-wrap items-center gap-3">
+                        <span className="font-mono text-xs font-bold text-blue-400">
+                          {complaint.id}
+                        </span>
 
-                          <span className="font-mono text-sm font-bold text-blue-400">
-                            {complaint.id}
-                          </span>
+                        <span
+                          className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusClass(
+                            complaint.status
+                          )}`}
+                        >
+                          {complaint.status}
+                        </span>
 
-                          <span
-                            className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusClass(
-                              complaint.status
-                            )}`}
-                          >
-                            {complaint.status}
-                          </span>
-
-                        </div>
-
-                        <h4 className="mt-3 text-lg font-bold">
-                          {complaint.title}
-                        </h4>
-
-                        <div className="mt-2 flex flex-wrap gap-4 text-xs text-slate-500">
-
-                          <span>
-                            Category:{" "}
-                            {complaint.category}
-                          </span>
-
-                          <span>
-                            Submitted:{" "}
-                            {formatDate(
-                              complaint.submittedAt
-                            )}
-                          </span>
-
-                        </div>
+                        <span
+                          className={`text-xs font-bold ${priorityClass(
+                            complaint.priority
+                          )}`}
+                        >
+                          {complaint.priority} Priority
+                        </span>
 
                       </div>
 
-                      <div className="flex shrink-0 items-center gap-5">
+                      <h4 className="mt-3 text-xl font-bold">
+                        {complaint.title}
+                      </h4>
 
-                        <div className="text-right">
+                      <p className="mt-2 text-sm text-slate-500">
+                        {complaint.category} • Submitted{" "}
+                        {formatDate(
+                          complaint.submittedAt
+                        )}
+                      </p>
 
-                          <p className="text-xs text-slate-600">
-                            Priority
-                          </p>
+                      <p className="mt-4 line-clamp-2 text-sm leading-6 text-slate-400">
+                        {complaint.description}
+                      </p>
 
-                          <p
-                            className={`mt-1 text-sm font-bold ${priorityClass(
-                              complaint.priority
-                            )}`}
-                          >
-                            {complaint.priority}
-                          </p>
+                      {/* ADMIN SUMMARY */}
 
-                        </div>
+                      <div className="mt-5 grid gap-3 sm:grid-cols-3">
 
-                        <span className="text-xl text-slate-600">
-                          →
-                        </span>
+                        <MiniInfo
+                          label="Department"
+                          value={
+                            complaint.assignedDepartment ||
+                            "Not assigned"
+                          }
+                        />
+
+                        <MiniInfo
+                          label="Authority"
+                          value={
+                            complaint.assignedAuthority ||
+                            "Not assigned"
+                          }
+                        />
+
+                        <MiniInfo
+                          label="Deadline"
+                          value={
+                            complaint.dueDate
+                              ? formatDate(
+                                  complaint.dueDate
+                                )
+                              : "Not set"
+                          }
+                        />
 
                       </div>
 
                     </div>
 
-                  </button>
+                    <div className="flex items-center">
 
-                )
-              )}
+                      <button
+                        onClick={() =>
+                          setSelectedComplaint(
+                            complaint
+                          )
+                        }
+                        className="w-full rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold transition hover:bg-blue-500 lg:w-auto"
+                      >
+                        View Details
+                      </button>
 
-            </div>
+                    </div>
+
+                  </div>
+
+                </article>
+
+              )
+            )
 
           )}
 
@@ -475,25 +642,239 @@ export default function StudentDashboard() {
 
       </div>
 
-      {/* COMPLAINT DETAILS */}
+      {/* NEW COMPLAINT MODAL */}
 
-      {selectedComplaint && (
+      {showForm && (
 
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black/80 p-4 backdrop-blur-sm">
 
-          <div className="mx-auto my-8 max-w-3xl rounded-3xl border border-slate-700 bg-slate-950 shadow-2xl">
+          <div className="mx-auto my-8 max-w-2xl rounded-3xl border border-slate-700 bg-slate-950 shadow-2xl">
 
             <div className="flex items-start justify-between border-b border-slate-800 p-6">
 
               <div>
 
-                <span className="font-mono text-sm font-bold text-blue-400">
-                  {selectedComplaint.id}
-                </span>
+                <p className="text-sm font-semibold uppercase tracking-wider text-blue-400">
+                  New Complaint
+                </p>
+
+                <h2 className="mt-2 text-2xl font-bold">
+                  Submit a Complaint
+                </h2>
+
+                <p className="mt-2 text-sm text-slate-500">
+                  Your complaint will be reviewed by the
+                  administration.
+                </p>
+
+              </div>
+
+              <button
+                onClick={() =>
+                  setShowForm(false)
+                }
+                className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-700 text-xl text-slate-400 hover:bg-slate-800"
+              >
+                ×
+              </button>
+
+            </div>
+
+            <div className="space-y-5 p-6">
+
+              {/* TITLE */}
+
+              <div>
+
+                <label className="mb-2 block text-sm font-semibold">
+                  Complaint Title
+                </label>
+
+                <input
+                  value={title}
+                  onChange={(e) =>
+                    setTitle(e.target.value)
+                  }
+                  placeholder="Enter a short title"
+                  className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm outline-none focus:border-blue-400"
+                />
+
+              </div>
+
+              {/* CATEGORY / PRIORITY */}
+
+              <div className="grid gap-5 sm:grid-cols-2">
+
+                <div>
+
+                  <label className="mb-2 block text-sm font-semibold">
+                    Category
+                  </label>
+
+                  <select
+                    value={category}
+                    onChange={(e) =>
+                      setCategory(
+                        e.target.value
+                      )
+                    }
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm outline-none focus:border-blue-400"
+                  >
+
+                    {categories.map(
+                      (item) => (
+                        <option
+                          key={item}
+                          value={item}
+                        >
+                          {item}
+                        </option>
+                      )
+                    )}
+
+                  </select>
+
+                </div>
+
+                <div>
+
+                  <label className="mb-2 block text-sm font-semibold">
+                    Priority
+                  </label>
+
+                  <select
+                    value={priority}
+                    onChange={(e) =>
+                      setPriority(
+                        e.target.value
+                      )
+                    }
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm outline-none focus:border-blue-400"
+                  >
+
+                    {priorities.map(
+                      (item) => (
+                        <option
+                          key={item}
+                          value={item}
+                        >
+                          {item}
+                        </option>
+                      )
+                    )}
+
+                  </select>
+
+                </div>
+
+              </div>
+
+              {/* LOCATION */}
+
+              <div>
+
+                <label className="mb-2 block text-sm font-semibold">
+                  Location
+                </label>
+
+                <input
+                  value={location}
+                  onChange={(e) =>
+                    setLocation(
+                      e.target.value
+                    )
+                  }
+                  placeholder="Where did the issue occur?"
+                  className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm outline-none focus:border-blue-400"
+                />
+
+              </div>
+
+              {/* DESCRIPTION */}
+
+              <div>
+
+                <label className="mb-2 block text-sm font-semibold">
+                  Description
+                </label>
+
+                <textarea
+                  value={description}
+                  onChange={(e) =>
+                    setDescription(
+                      e.target.value
+                    )
+                  }
+                  rows={6}
+                  placeholder="Explain the issue in detail..."
+                  className="w-full resize-none rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm leading-6 outline-none focus:border-blue-400"
+                />
+
+              </div>
+
+              {submitMessage && (
+
+                <div className="rounded-xl border border-blue-400/20 bg-blue-500/10 p-4 text-sm font-medium text-blue-400">
+                  {submitMessage}
+                </div>
+
+              )}
+
+              <button
+                onClick={submitComplaint}
+                className="w-full rounded-xl bg-blue-600 px-5 py-3.5 font-bold transition hover:bg-blue-500"
+              >
+                Submit Complaint
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      )}
+
+      {/* COMPLAINT DETAILS MODAL */}
+
+      {selectedComplaint && (
+
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/80 p-4 backdrop-blur-sm">
+
+          <div className="mx-auto my-8 max-w-4xl rounded-3xl border border-slate-700 bg-slate-950 shadow-2xl">
+
+            {/* HEADER */}
+
+            <div className="flex items-start justify-between border-b border-slate-800 p-6">
+
+              <div>
+
+                <div className="flex flex-wrap items-center gap-3">
+
+                  <span className="font-mono text-sm font-bold text-blue-400">
+                    {selectedComplaint.id}
+                  </span>
+
+                  <span
+                    className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusClass(
+                      selectedComplaint.status
+                    )}`}
+                  >
+                    {selectedComplaint.status}
+                  </span>
+
+                </div>
 
                 <h2 className="mt-3 text-2xl font-bold">
                   {selectedComplaint.title}
                 </h2>
+
+                <p className="mt-2 text-sm text-slate-500">
+                  Submitted{" "}
+                  {formatDateTime(
+                    selectedComplaint.submittedAt
+                  )}
+                </p>
 
               </div>
 
@@ -508,84 +889,89 @@ export default function StudentDashboard() {
 
             </div>
 
-            <div className="space-y-5 p-6">
+            <div className="space-y-6 p-6">
 
-              {/* STATUS */}
+              {/* ORIGINAL COMPLAINT */}
 
-              <div className="rounded-2xl border border-blue-400/20 bg-blue-500/5 p-5">
-
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                  Current Status
-                </p>
-
-                <span
-                  className={`mt-3 inline-flex rounded-full border px-4 py-2 text-sm font-bold ${statusClass(
-                    selectedComplaint.status
-                  )}`}
-                >
-                  {selectedComplaint.status}
-                </span>
-
-              </div>
-
-              {/* BASIC DETAILS */}
-
-              <div className="grid gap-4 sm:grid-cols-2">
-
-                <Info
-                  label="Category"
-                  value={
-                    selectedComplaint.category
-                  }
-                />
-
-                <Info
-                  label="Priority"
-                  value={
-                    selectedComplaint.priority
-                  }
-                />
-
-                <Info
-                  label="Submitted"
-                  value={formatDate(
-                    selectedComplaint.submittedAt
-                  )}
-                />
-
-                <Info
-                  label="Location"
-                  value={
-                    selectedComplaint.location ||
-                    "Not provided"
-                  }
-                />
-
-              </div>
-
-              {/* DESCRIPTION */}
-
-              <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
-
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                  Complaint Description
-                </p>
-
-                <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-slate-300">
-                  {selectedComplaint.description}
-                </p>
-
-              </div>
-
-              {/* ADMINISTRATION */}
-
-              <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
+              <section className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
 
                 <h3 className="font-bold">
-                  Administrative Information
+                  Your Complaint
                 </h3>
 
-                <div className="mt-4 space-y-4">
+                <div className="mt-4 grid gap-4 sm:grid-cols-2">
+
+                  <Info
+                    label="Category"
+                    value={
+                      selectedComplaint.category
+                    }
+                  />
+
+                  <Info
+                    label="Priority"
+                    value={
+                      selectedComplaint.priority
+                    }
+                  />
+
+                  <Info
+                    label="Location"
+                    value={
+                      selectedComplaint.location
+                    }
+                  />
+
+                  <Info
+                    label="Last Updated"
+                    value={
+                      selectedComplaint.updatedAt
+                        ? formatDateTime(
+                            selectedComplaint.updatedAt
+                          )
+                        : "Not updated"
+                    }
+                  />
+
+                </div>
+
+                <div className="mt-4 rounded-xl border border-slate-800 bg-slate-950 p-4">
+
+                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    Description
+                  </p>
+
+                  <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-slate-300">
+                    {
+                      selectedComplaint.description
+                    }
+                  </p>
+
+                </div>
+
+              </section>
+
+              {/* ADMIN UPDATE */}
+
+              <section className="rounded-2xl border border-blue-400/20 bg-blue-500/5 p-5">
+
+                <h3 className="text-lg font-bold text-blue-400">
+                  Administrative Update
+                </h3>
+
+                <p className="mt-1 text-sm text-slate-500">
+                  This information is updated by the DSCE
+                  administration.
+                </p>
+
+                <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+
+                  <Info
+                    label="Current Status"
+                    value={
+                      selectedComplaint.status
+                    }
+                  />
 
                   <Info
                     label="Assigned Department"
@@ -614,83 +1000,140 @@ export default function StudentDashboard() {
                     }
                   />
 
+                  <Info
+                    label="Escalated To"
+                    value={
+                      selectedComplaint.escalatedTo ||
+                      "Not escalated"
+                    }
+                  />
+
+                  <Info
+                    label="Escalation Level"
+                    value={String(
+                      selectedComplaint.escalationLevel ||
+                        0
+                    )}
+                  />
+
                 </div>
 
-              </div>
+              </section>
 
               {/* ESCALATION */}
 
               {selectedComplaint.status ===
                 "Escalated" && (
 
-                <div className="rounded-2xl border border-red-400/20 bg-red-500/5 p-5">
+                <section className="rounded-2xl border border-red-400/20 bg-red-500/5 p-5">
 
                   <h3 className="font-bold text-red-400">
-                    Complaint Escalated
+                    🚨 Complaint Escalated
                   </h3>
 
-                  <p className="mt-3 text-sm text-slate-400">
-                    This complaint has been escalated
+                  <p className="mt-3 text-sm leading-6 text-slate-400">
+                    Your complaint has been escalated
                     by the administration for further
-                    action.
+                    intervention.
                   </p>
 
                   {selectedComplaint.escalatedTo && (
-                    <p className="mt-3 text-sm text-slate-300">
-                      Escalated to:{" "}
-                      <span className="font-semibold">
+
+                    <div className="mt-4">
+
+                      <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                        Escalated To
+                      </p>
+
+                      <p className="mt-1 font-semibold">
                         {
                           selectedComplaint.escalatedTo
                         }
-                      </span>
-                    </p>
+                      </p>
+
+                    </div>
+
                   )}
 
-                </div>
+                  {selectedComplaint.escalationReason && (
+
+                    <div className="mt-4 rounded-xl border border-slate-800 bg-slate-950 p-4">
+
+                      <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                        Reason
+                      </p>
+
+                      <p className="mt-2 text-sm leading-6 text-slate-300">
+                        {
+                          selectedComplaint.escalationReason
+                        }
+                      </p>
+
+                    </div>
+
+                  )}
+
+                </section>
 
               )}
 
               {/* ADMIN REMARKS */}
 
-              {selectedComplaint.adminRemarks && (
+              <section className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
 
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
+                <h3 className="font-bold">
+                  Administrative Remarks
+                </h3>
 
-                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Administrative Remarks
-                  </p>
+                {selectedComplaint.adminRemarks ? (
 
-                  <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-slate-300">
+                  <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-slate-400">
                     {
                       selectedComplaint.adminRemarks
                     }
                   </p>
 
-                </div>
+                ) : (
 
-              )}
+                  <p className="mt-3 text-sm text-slate-600">
+                    No administrative remarks have been
+                    added yet.
+                  </p>
+
+                )}
+
+              </section>
 
               {/* RESOLUTION */}
 
-              {selectedComplaint.resolutionDetails && (
+              <section className="rounded-2xl border border-green-400/20 bg-green-500/5 p-5">
 
-                <div className="rounded-2xl border border-green-400/20 bg-green-500/5 p-5">
+                <h3 className="font-bold text-green-400">
+                  Resolution
+                </h3>
 
-                  <p className="text-xs font-semibold uppercase tracking-wider text-green-400">
-                    Resolution
-                  </p>
+                {selectedComplaint.resolutionDetails ? (
 
-                  <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-slate-300">
+                  <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-slate-400">
                     {
                       selectedComplaint.resolutionDetails
                     }
                   </p>
 
-                </div>
+                ) : (
 
-              )}
+                  <p className="mt-3 text-sm text-slate-600">
+                    The complaint has not been resolved
+                    yet.
+                  </p>
+
+                )}
+
+              </section>
 
             </div>
+
+            {/* FOOTER */}
 
             <div className="border-t border-slate-800 p-6">
 
@@ -715,7 +1158,7 @@ export default function StudentDashboard() {
   );
 }
 
-function DashboardCard({
+function StatCard({
   title,
   value,
   icon,
@@ -747,6 +1190,28 @@ function DashboardCard({
   );
 }
 
+function MiniInfo({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-xl border border-slate-800 bg-slate-950 p-3">
+
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-600">
+        {label}
+      </p>
+
+      <p className="mt-1 truncate text-xs font-medium text-slate-300">
+        {value}
+      </p>
+
+    </div>
+  );
+}
+
 function Info({
   label,
   value,
@@ -755,7 +1220,7 @@ function Info({
   value: string;
 }) {
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+    <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
 
       <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
         {label}
