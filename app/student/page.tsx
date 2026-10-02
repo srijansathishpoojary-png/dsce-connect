@@ -47,14 +47,21 @@ const categories = [
   "Other",
 ];
 
-const priorities = ["Low", "Medium", "High", "Urgent"];
+const priorities = [
+  "Low",
+  "Medium",
+  "High",
+  "Urgent",
+];
 
 function formatDate(date?: string) {
   if (!date) return "Not set";
 
   const parsed = new Date(date);
 
-  if (Number.isNaN(parsed.getTime())) return date;
+  if (Number.isNaN(parsed.getTime())) {
+    return date;
+  }
 
   return parsed.toLocaleDateString("en-IN", {
     day: "2-digit",
@@ -68,7 +75,9 @@ function formatDateTime(date?: string) {
 
   const parsed = new Date(date);
 
-  if (Number.isNaN(parsed.getTime())) return date;
+  if (Number.isNaN(parsed.getTime())) {
+    return date;
+  }
 
   return parsed.toLocaleString("en-IN", {
     day: "2-digit",
@@ -126,12 +135,32 @@ function priorityClass(priority: string) {
   }
 }
 
+function isOverdue(complaint: Complaint) {
+  if (!complaint.dueDate) return false;
+
+  if (
+    complaint.status === "Resolved" ||
+    complaint.status === "Closed"
+  ) {
+    return false;
+  }
+
+  return (
+    new Date(complaint.dueDate).getTime() <
+    Date.now()
+  );
+}
+
 export default function StudentDashboard() {
-  const [complaints, setComplaints] = useState<Complaint[]>([]);
+  const [complaints, setComplaints] = useState<Complaint[]>(
+    []
+  );
+
   const [selectedComplaint, setSelectedComplaint] =
     useState<Complaint | null>(null);
 
-  const [showForm, setShowForm] = useState(false);
+  const [showForm, setShowForm] =
+    useState(false);
 
   const [studentName, setStudentName] =
     useState("Student");
@@ -140,18 +169,53 @@ export default function StudentDashboard() {
     useState("Student");
 
   const [title, setTitle] = useState("");
+
   const [category, setCategory] =
     useState(categories[0]);
+
   const [description, setDescription] =
     useState("");
+
   const [location, setLocation] =
     useState("");
+
   const [priority, setPriority] =
     useState("Medium");
 
   const [submitMessage, setSubmitMessage] =
     useState("");
 
+  /*
+   * Load complaints from localStorage.
+   */
+  function loadComplaints() {
+    const stored =
+      localStorage.getItem(STORAGE_KEY);
+
+    if (!stored) {
+      setComplaints([]);
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(stored);
+
+      if (Array.isArray(parsed)) {
+        setComplaints(parsed);
+      } else {
+        setComplaints([]);
+      }
+    } catch {
+      setComplaints([]);
+    }
+  }
+
+  /*
+   * Initial page load + automatic refresh.
+   *
+   * This keeps the Student Dashboard synchronized
+   * with changes made by the Admin Dashboard.
+   */
   useEffect(() => {
     const savedName =
       localStorage.getItem("studentName");
@@ -168,81 +232,171 @@ export default function StudentDashboard() {
     }
 
     loadComplaints();
-  }, []);
 
-  function loadComplaints() {
-    const stored =
-      localStorage.getItem(STORAGE_KEY);
-
-    if (!stored) {
-      setComplaints([]);
-      return;
-    }
-
-    try {
-      const parsed = JSON.parse(stored);
-
-      if (Array.isArray(parsed)) {
-        setComplaints(parsed);
+    /*
+     * The storage event is useful when localStorage
+     * is changed from another browser tab/window.
+     */
+    const handleStorageChange = (
+      event: StorageEvent
+    ) => {
+      if (
+        event.key === STORAGE_KEY ||
+        event.key === null
+      ) {
+        loadComplaints();
       }
-    } catch {
-      setComplaints([]);
-    }
-  }
+    };
 
-  /*
-   * For development mode we identify the student
-   * using the stored student ID/name.
-   *
-   * If no student ID is stored, all student complaints
-   * are shown. This makes the prototype easier to test.
-   */
-  const myComplaints = useMemo(() => {
-    const studentComplaints = complaints.filter(
-      (complaint) =>
-        complaint.complainantType === "student"
+    window.addEventListener(
+      "storage",
+      handleStorageChange
     );
 
-    if (studentId && studentId !== "Student") {
+    /*
+     * Reload whenever the student comes back
+     * to this browser tab/window.
+     */
+    const handleFocus = () => {
+      loadComplaints();
+    };
+
+    window.addEventListener(
+      "focus",
+      handleFocus
+    );
+
+    /*
+     * Also refresh when the page becomes visible.
+     */
+    const handleVisibilityChange = () => {
+      if (
+        document.visibilityState ===
+        "visible"
+      ) {
+        loadComplaints();
+      }
+    };
+
+    document.addEventListener(
+      "visibilitychange",
+      handleVisibilityChange
+    );
+
+    return () => {
+      window.removeEventListener(
+        "storage",
+        handleStorageChange
+      );
+
+      window.removeEventListener(
+        "focus",
+        handleFocus
+      );
+
+      document.removeEventListener(
+        "visibilitychange",
+        handleVisibilityChange
+      );
+    };
+  }, []);
+
+  /*
+   * Only show complaints belonging to this student.
+   *
+   * Admin can see all complaints.
+   * Students cannot see other students' complaints.
+   */
+  const myComplaints = useMemo(() => {
+    const studentComplaints =
+      complaints.filter(
+        (complaint) =>
+          complaint.complainantType ===
+          "student"
+      );
+
+    /*
+     * Prefer Student ID because it is more reliable
+     * than a name.
+     */
+    if (
+      studentId &&
+      studentId !== "Student"
+    ) {
       return studentComplaints.filter(
         (complaint) =>
-          complaint.complainantId === studentId
+          complaint.complainantId ===
+          studentId
       );
     }
 
-    if (studentName && studentName !== "Student") {
+    /*
+     * Development fallback.
+     */
+    if (
+      studentName &&
+      studentName !== "Student"
+    ) {
       return studentComplaints.filter(
         (complaint) =>
-          complaint.complainantName === studentName
+          complaint.complainantName ===
+          studentName
       );
     }
 
+    /*
+     * Development mode fallback when
+     * no student identity is configured.
+     */
     return studentComplaints;
-  }, [complaints, studentId, studentName]);
+  }, [
+    complaints,
+    studentId,
+    studentName,
+  ]);
 
-  const pendingCount = myComplaints.filter(
-    (complaint) =>
-      complaint.status === "Pending"
-  ).length;
+  const pendingCount =
+    myComplaints.filter(
+      (complaint) =>
+        complaint.status === "Pending"
+    ).length;
 
-  const activeCount = myComplaints.filter(
-    (complaint) =>
-      complaint.status === "Under Review" ||
-      complaint.status === "Assigned" ||
-      complaint.status === "In Progress"
-  ).length;
+  const activeCount =
+    myComplaints.filter(
+      (complaint) =>
+        complaint.status ===
+          "Under Review" ||
+        complaint.status ===
+          "Assigned" ||
+        complaint.status ===
+          "In Progress"
+    ).length;
 
-  const escalatedCount = myComplaints.filter(
-    (complaint) =>
-      complaint.status === "Escalated"
-  ).length;
+  const escalatedCount =
+    myComplaints.filter(
+      (complaint) =>
+        complaint.status ===
+        "Escalated"
+    ).length;
 
-  const resolvedCount = myComplaints.filter(
-    (complaint) =>
-      complaint.status === "Resolved" ||
-      complaint.status === "Closed"
-  ).length;
+  const resolvedCount =
+    myComplaints.filter(
+      (complaint) =>
+        complaint.status ===
+          "Resolved" ||
+        complaint.status ===
+          "Closed"
+    ).length;
 
+  const overdueCount =
+    myComplaints.filter(
+      (complaint) =>
+        isOverdue(complaint)
+    ).length;
+
+  /*
+   * Submit a new student complaint.
+   */
   function submitComplaint() {
     if (!title.trim()) {
       setSubmitMessage(
@@ -257,6 +411,9 @@ export default function StudentDashboard() {
       );
       return;
     }
+
+    const now =
+      new Date().toISOString();
 
     const newComplaint: Complaint = {
       id: `CMP-${Date.now()}`,
@@ -273,17 +430,18 @@ export default function StudentDashboard() {
 
       category,
 
-      description: description.trim(),
+      description:
+        description.trim(),
 
       location:
-        location.trim() || "Not provided",
+        location.trim() ||
+        "Not provided",
 
       priority,
 
       status: "Pending",
 
-      submittedAt:
-        new Date().toISOString(),
+      submittedAt: now,
 
       assignedDepartment: "",
 
@@ -301,8 +459,7 @@ export default function StudentDashboard() {
 
       resolutionDetails: "",
 
-      updatedAt:
-        new Date().toISOString(),
+      updatedAt: now,
     };
 
     const stored =
@@ -312,7 +469,8 @@ export default function StudentDashboard() {
 
     if (stored) {
       try {
-        const parsed = JSON.parse(stored);
+        const parsed =
+          JSON.parse(stored);
 
         if (Array.isArray(parsed)) {
           existing = parsed;
@@ -350,8 +508,44 @@ export default function StudentDashboard() {
     }, 1800);
   }
 
+  /*
+   * Manual refresh button.
+   */
   function refreshComplaints() {
     loadComplaints();
+
+    /*
+     * If a complaint is currently open,
+     * refresh that complaint as well.
+     */
+    if (selectedComplaint) {
+      const stored =
+        localStorage.getItem(STORAGE_KEY);
+
+      if (stored) {
+        try {
+          const parsed =
+            JSON.parse(stored);
+
+          if (Array.isArray(parsed)) {
+            const latest =
+              parsed.find(
+                (complaint: Complaint) =>
+                  complaint.id ===
+                  selectedComplaint.id
+              );
+
+            if (latest) {
+              setSelectedComplaint(
+                latest
+              );
+            }
+          }
+        } catch {
+          // Ignore invalid localStorage data.
+        }
+      }
+    }
   }
 
   return (
@@ -427,8 +621,9 @@ export default function StudentDashboard() {
           </h2>
 
           <p className="mt-3 max-w-3xl text-slate-400">
-            Submit complaints, track their progress and
-            view administrative actions taken by DSCE.
+            Submit complaints, track their
+            progress and view administrative
+            actions taken by DSCE.
           </p>
 
           <button
@@ -444,7 +639,7 @@ export default function StudentDashboard() {
 
         {/* STATISTICS */}
 
-        <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
 
           <StatCard
             title="Total Complaints"
@@ -477,6 +672,30 @@ export default function StudentDashboard() {
           />
 
         </section>
+
+        {/* OVERDUE NOTICE */}
+
+        {overdueCount > 0 && (
+
+          <div className="mt-6 rounded-2xl border border-orange-400/20 bg-orange-500/10 p-4">
+
+            <p className="text-sm font-semibold text-orange-400">
+              ⚠️ {overdueCount} complaint
+              {overdueCount > 1
+                ? "s are"
+                : " is"}{" "}
+              past the current resolution
+              deadline.
+            </p>
+
+            <p className="mt-1 text-xs text-slate-400">
+              Please review the complaint details
+              for the latest administrative update.
+            </p>
+
+          </div>
+
+        )}
 
         {/* REFRESH */}
 
@@ -520,8 +739,8 @@ export default function StudentDashboard() {
               </h3>
 
               <p className="mt-2 text-sm text-slate-500">
-                Submit your first complaint using the
-                button above.
+                Submit your first complaint
+                using the button above.
               </p>
 
             </div>
@@ -561,6 +780,16 @@ export default function StudentDashboard() {
                         >
                           {complaint.priority} Priority
                         </span>
+
+                        {isOverdue(
+                          complaint
+                        ) && (
+
+                          <span className="rounded-full border border-orange-400/30 bg-orange-500/10 px-3 py-1 text-xs font-bold text-orange-400">
+                            OVERDUE
+                          </span>
+
+                        )}
 
                       </div>
 
@@ -663,8 +892,8 @@ export default function StudentDashboard() {
                 </h2>
 
                 <p className="mt-2 text-sm text-slate-500">
-                  Your complaint will be reviewed by the
-                  administration.
+                  Your complaint will be reviewed by
+                  the administration.
                 </p>
 
               </div>
@@ -723,12 +952,14 @@ export default function StudentDashboard() {
 
                     {categories.map(
                       (item) => (
+
                         <option
                           key={item}
                           value={item}
                         >
                           {item}
                         </option>
+
                       )
                     )}
 
@@ -754,12 +985,14 @@ export default function StudentDashboard() {
 
                     {priorities.map(
                       (item) => (
+
                         <option
                           key={item}
                           value={item}
                         >
                           {item}
                         </option>
+
                       )
                     )}
 
@@ -863,6 +1096,16 @@ export default function StudentDashboard() {
                     {selectedComplaint.status}
                   </span>
 
+                  {isOverdue(
+                    selectedComplaint
+                  ) && (
+
+                    <span className="rounded-full border border-orange-400/30 bg-orange-500/10 px-3 py-1 text-xs font-bold text-orange-400">
+                      OVERDUE
+                    </span>
+
+                  )}
+
                 </div>
 
                 <h2 className="mt-3 text-2xl font-bold">
@@ -960,8 +1203,8 @@ export default function StudentDashboard() {
                 </h3>
 
                 <p className="mt-1 text-sm text-slate-500">
-                  This information is updated by the DSCE
-                  administration.
+                  This information is updated by the
+                  DSCE administration.
                 </p>
 
                 <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -1096,8 +1339,8 @@ export default function StudentDashboard() {
                 ) : (
 
                   <p className="mt-3 text-sm text-slate-600">
-                    No administrative remarks have been
-                    added yet.
+                    No administrative remarks have
+                    been added yet.
                   </p>
 
                 )}
