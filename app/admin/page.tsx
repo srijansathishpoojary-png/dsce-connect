@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 
 type Complaint = {
   id: string;
+
   complainantType: "student" | "faculty";
   complainantName: string;
   complainantId: string;
@@ -33,21 +34,6 @@ type Complaint = {
 
 const STORAGE_KEY = "dsceComplaints";
 
-const departments = [
-  "Administration",
-  "Academic Department",
-  "Examination Department",
-  "Human Resources",
-  "Accounts / Finance",
-  "IT Department",
-  "Infrastructure / Maintenance",
-  "Student Affairs",
-  "Library",
-  "Hostel",
-  "Transport",
-  "Other",
-];
-
 const statuses = [
   "Pending",
   "Under Review",
@@ -59,11 +45,52 @@ const statuses = [
   "Rejected",
 ];
 
-const priorities = [
-  "Low",
-  "Medium",
-  "High",
-  "Urgent",
+const categories = [
+  "Salary / Payroll",
+  "Students",
+  "Infrastructure",
+  "Colleagues",
+  "Administration",
+  "Workload",
+  "Academic",
+  "Examination",
+  "IT / Technical",
+  "Leave / Attendance",
+  "HR / Service",
+  "Other",
+];
+
+const priorities = ["Low", "Medium", "High", "Urgent"];
+
+const departments = [
+  "Administration",
+  "Human Resources",
+  "Accounts / Finance",
+  "Academic Department",
+  "Examination Cell",
+  "Infrastructure / Maintenance",
+  "IT Department",
+  "Student Affairs",
+  "Library",
+  "Transport",
+  "Security",
+  "Principal's Office",
+  "Management",
+];
+
+const authorities = [
+  "Principal",
+  "Vice Principal",
+  "Dean",
+  "Head of Department",
+  "HR Manager",
+  "Accounts Officer",
+  "Exam Controller",
+  "IT Administrator",
+  "Administrative Officer",
+  "Student Affairs Officer",
+  "Infrastructure Officer",
+  "Management Representative",
 ];
 
 function formatDate(date?: string) {
@@ -147,19 +174,6 @@ function priorityClass(priority: string) {
   }
 }
 
-function isOverdue(complaint: Complaint) {
-  if (!complaint.dueDate) return false;
-
-  if (
-    complaint.status === "Resolved" ||
-    complaint.status === "Closed"
-  ) {
-    return false;
-  }
-
-  return new Date(complaint.dueDate).getTime() < Date.now();
-}
-
 export default function AdminDashboard() {
   const [complaints, setComplaints] = useState<Complaint[]>([]);
 
@@ -168,25 +182,43 @@ export default function AdminDashboard() {
 
   const [search, setSearch] = useState("");
 
-  const [typeFilter, setTypeFilter] =
+  const [statusFilter, setStatusFilter] =
     useState("All");
 
-  const [statusFilter, setStatusFilter] =
+  const [typeFilter, setTypeFilter] =
     useState("All");
 
   const [priorityFilter, setPriorityFilter] =
     useState("All");
 
-  const [departmentFilter, setDepartmentFilter] =
+  const [categoryFilter, setCategoryFilter] =
     useState("All");
 
-  const [showOnlyOverdue, setShowOnlyOverdue] =
-    useState(false);
+  const [department, setDepartment] =
+    useState("");
 
-  const [showEscalatedOnly, setShowEscalatedOnly] =
-    useState(false);
+  const [authority, setAuthority] =
+    useState("");
 
-  const [adminMessage, setAdminMessage] =
+  const [status, setStatus] =
+    useState("Pending");
+
+  const [dueDate, setDueDate] =
+    useState("");
+
+  const [escalatedTo, setEscalatedTo] =
+    useState("");
+
+  const [escalationReason, setEscalationReason] =
+    useState("");
+
+  const [adminRemarks, setAdminRemarks] =
+    useState("");
+
+  const [resolutionDetails, setResolutionDetails] =
+    useState("");
+
+  const [updateMessage, setUpdateMessage] =
     useState("");
 
   useEffect(() => {
@@ -213,285 +245,237 @@ export default function AdminDashboard() {
     }
   }
 
-  function saveComplaints(updated: Complaint[]) {
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify(updated)
-    );
-
-    setComplaints(updated);
-  }
-
   const filteredComplaints = useMemo(() => {
     return complaints.filter((complaint) => {
       const searchText =
-        `${complaint.id} ${complaint.title} ${complaint.complainantName} ${complaint.complainantId} ${complaint.category}`
-          .toLowerCase();
+        search.trim().toLowerCase();
 
-      if (
-        search &&
-        !searchText.includes(
-          search.toLowerCase()
-        )
-      ) {
-        return false;
-      }
+      const matchesSearch =
+        !searchText ||
+        complaint.id
+          .toLowerCase()
+          .includes(searchText) ||
+        complaint.title
+          .toLowerCase()
+          .includes(searchText) ||
+        complaint.complainantName
+          .toLowerCase()
+          .includes(searchText) ||
+        complaint.complainantId
+          .toLowerCase()
+          .includes(searchText) ||
+        complaint.category
+          .toLowerCase()
+          .includes(searchText);
 
-      if (
-        typeFilter !== "All" &&
-        complaint.complainantType !==
-          typeFilter.toLowerCase()
-      ) {
-        return false;
-      }
+      const matchesStatus =
+        statusFilter === "All" ||
+        complaint.status === statusFilter;
 
-      if (
-        statusFilter !== "All" &&
-        complaint.status !== statusFilter
-      ) {
-        return false;
-      }
+      const matchesType =
+        typeFilter === "All" ||
+        complaint.complainantType ===
+          typeFilter.toLowerCase();
 
-      if (
-        priorityFilter !== "All" &&
-        complaint.priority !== priorityFilter
-      ) {
-        return false;
-      }
+      const matchesPriority =
+        priorityFilter === "All" ||
+        complaint.priority === priorityFilter;
 
-      if (
-        departmentFilter !== "All" &&
-        complaint.assignedDepartment !==
-          departmentFilter
-      ) {
-        return false;
-      }
+      const matchesCategory =
+        categoryFilter === "All" ||
+        complaint.category === categoryFilter;
 
-      if (
-        showOnlyOverdue &&
-        !isOverdue(complaint)
-      ) {
-        return false;
-      }
-
-      if (
-        showEscalatedOnly &&
-        complaint.status !== "Escalated"
-      ) {
-        return false;
-      }
-
-      return true;
+      return (
+        matchesSearch &&
+        matchesStatus &&
+        matchesType &&
+        matchesPriority &&
+        matchesCategory
+      );
     });
   }, [
     complaints,
     search,
-    typeFilter,
     statusFilter,
+    typeFilter,
     priorityFilter,
-    departmentFilter,
-    showOnlyOverdue,
-    showEscalatedOnly,
+    categoryFilter,
   ]);
 
-  const studentCount = complaints.filter(
-    (c) =>
-      c.complainantType === "student"
-  ).length;
+  const totalCount = complaints.length;
 
-  const facultyCount = complaints.filter(
-    (c) =>
-      c.complainantType === "faculty"
-  ).length;
+  const studentCount =
+    complaints.filter(
+      (complaint) =>
+        complaint.complainantType ===
+        "student"
+    ).length;
 
-  const pendingCount = complaints.filter(
-    (c) =>
-      c.status === "Pending" ||
-      c.status === "Under Review"
-  ).length;
+  const facultyCount =
+    complaints.filter(
+      (complaint) =>
+        complaint.complainantType ===
+        "faculty"
+    ).length;
 
-  const activeCount = complaints.filter(
-    (c) =>
-      c.status === "Assigned" ||
-      c.status === "In Progress"
-  ).length;
+  const pendingCount =
+    complaints.filter(
+      (complaint) =>
+        complaint.status === "Pending"
+    ).length;
 
-  const escalatedCount = complaints.filter(
-    (c) =>
-      c.status === "Escalated"
-  ).length;
+  const activeCount =
+    complaints.filter(
+      (complaint) =>
+        complaint.status ===
+          "Under Review" ||
+        complaint.status === "Assigned" ||
+        complaint.status === "In Progress"
+    ).length;
 
-  const resolvedCount = complaints.filter(
-    (c) =>
-      c.status === "Resolved" ||
-      c.status === "Closed"
-  ).length;
+  const escalatedCount =
+    complaints.filter(
+      (complaint) =>
+        complaint.status === "Escalated"
+    ).length;
 
-  const overdueCount = complaints.filter(
-    (c) => isOverdue(c)
-  ).length;
+  const resolvedCount =
+    complaints.filter(
+      (complaint) =>
+        complaint.status === "Resolved" ||
+        complaint.status === "Closed"
+    ).length;
 
-  function updateComplaint(
-    id: string,
-    changes: Partial<Complaint>
-  ) {
-    const updated = complaints.map(
-      (complaint) => {
-        if (complaint.id !== id) {
-          return complaint;
-        }
+  const urgentCount =
+    complaints.filter(
+      (complaint) =>
+        complaint.priority === "Urgent"
+    ).length;
 
-        return {
-          ...complaint,
-          ...changes,
-          updatedAt:
-            new Date().toISOString(),
-        };
-      }
+  function openComplaint(complaint: Complaint) {
+    setSelectedComplaint(complaint);
+
+    setDepartment(
+      complaint.assignedDepartment || ""
     );
 
-    saveComplaints(updated);
+    setAuthority(
+      complaint.assignedAuthority || ""
+    );
 
-    const updatedComplaint =
-      updated.find(
-        (complaint) =>
-          complaint.id === id
-      );
+    setStatus(
+      complaint.status || "Pending"
+    );
 
-    if (updatedComplaint) {
-      setSelectedComplaint(
-        updatedComplaint
-      );
-    }
+    setDueDate(
+      complaint.dueDate || ""
+    );
+
+    setEscalatedTo(
+      complaint.escalatedTo || ""
+    );
+
+    setEscalationReason(
+      complaint.escalationReason || ""
+    );
+
+    setAdminRemarks(
+      complaint.adminRemarks || ""
+    );
+
+    setResolutionDetails(
+      complaint.resolutionDetails || ""
+    );
+
+    setUpdateMessage("");
   }
 
-  function assignComplaint() {
+  function updateComplaint() {
     if (!selectedComplaint) return;
 
-    if (
-      !selectedComplaint.assignedDepartment
-    ) {
-      setAdminMessage(
-        "Please select a department."
-      );
-      return;
-    }
+    const now =
+      new Date().toISOString();
+
+    let nextEscalationLevel =
+      selectedComplaint.escalationLevel || 0;
 
     if (
-      !selectedComplaint.assignedAuthority
+      status === "Escalated" &&
+      selectedComplaint.status !==
+        "Escalated"
     ) {
-      setAdminMessage(
-        "Please enter the responsible authority."
-      );
-      return;
+      nextEscalationLevel += 1;
     }
 
-    updateComplaint(
-      selectedComplaint.id,
-      {
-        status:
-          selectedComplaint.status ===
-            "Pending" ||
-          selectedComplaint.status ===
-            "Under Review"
-            ? "Assigned"
-            : selectedComplaint.status,
-      }
+    const updatedComplaint: Complaint = {
+      ...selectedComplaint,
+
+      assignedDepartment:
+        department,
+
+      assignedAuthority:
+        authority,
+
+      status,
+
+      dueDate,
+
+      escalatedTo:
+        status === "Escalated"
+          ? escalatedTo
+          : selectedComplaint.escalatedTo,
+
+      escalationReason:
+        status === "Escalated"
+          ? escalationReason
+          : selectedComplaint.escalationReason,
+
+      escalationLevel:
+        nextEscalationLevel,
+
+      adminRemarks,
+
+      resolutionDetails,
+
+      updatedAt: now,
+    };
+
+    const updatedComplaints =
+      complaints.map((complaint) =>
+        complaint.id ===
+        selectedComplaint.id
+          ? updatedComplaint
+          : complaint
+      );
+
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify(updatedComplaints)
     );
 
-    setAdminMessage(
-      "Complaint assigned successfully."
+    setComplaints(
+      updatedComplaints
     );
+
+    setSelectedComplaint(
+      updatedComplaint
+    );
+
+    setUpdateMessage(
+      "Complaint updated successfully."
+    );
+
+    setTimeout(() => {
+      setUpdateMessage("");
+    }, 2500);
   }
 
-  function escalateComplaint() {
-    if (!selectedComplaint) return;
-
-    if (
-      !selectedComplaint.escalatedTo
-    ) {
-      setAdminMessage(
-        "Please specify the authority to escalate to."
-      );
-      return;
-    }
-
-    if (
-      !selectedComplaint.escalationReason
-    ) {
-      setAdminMessage(
-        "Please provide an escalation reason."
-      );
-      return;
-    }
-
-    updateComplaint(
-      selectedComplaint.id,
-      {
-        status: "Escalated",
-        escalationLevel:
-          (selectedComplaint.escalationLevel ||
-            0) + 1,
-      }
-    );
-
-    setAdminMessage(
-      "Complaint escalated successfully."
-    );
-  }
-
-  function markResolved() {
-    if (!selectedComplaint) return;
-
-    if (
-      !selectedComplaint.resolutionDetails
-    ) {
-      setAdminMessage(
-        "Please enter the resolution details."
-      );
-      return;
-    }
-
-    updateComplaint(
-      selectedComplaint.id,
-      {
-        status: "Resolved",
-      }
-    );
-
-    setAdminMessage(
-      "Complaint marked as resolved."
-    );
-  }
-
-  function closeComplaint() {
-    if (!selectedComplaint) return;
-
-    updateComplaint(
-      selectedComplaint.id,
-      {
-        status: "Closed",
-      }
-    );
-
-    setAdminMessage(
-      "Complaint closed."
-    );
-  }
-
-  function rejectComplaint() {
-    if (!selectedComplaint) return;
-
-    updateComplaint(
-      selectedComplaint.id,
-      {
-        status: "Rejected",
-      }
-    );
-
-    setAdminMessage(
-      "Complaint rejected."
-    );
+  function clearFilters() {
+    setSearch("");
+    setStatusFilter("All");
+    setTypeFilter("All");
+    setPriorityFilter("All");
+    setCategoryFilter("All");
   }
 
   return (
@@ -516,7 +500,7 @@ export default function AdminDashboard() {
               </h1>
 
               <p className="text-xs text-red-400">
-                Administrator Portal
+                Administration Portal
               </p>
 
             </div>
@@ -528,11 +512,11 @@ export default function AdminDashboard() {
             <div className="hidden text-right sm:block">
 
               <p className="text-sm font-semibold">
-                System Administrator
+                Administrator
               </p>
 
               <p className="text-xs text-slate-500">
-                Full Complaint Authority
+                Full Complaint Management Access
               </p>
 
             </div>
@@ -550,51 +534,35 @@ export default function AdminDashboard() {
 
       </header>
 
-      {/* MAIN */}
+      {/* CONTENT */}
 
       <div className="mx-auto max-w-7xl px-6 py-8">
 
-        {/* ADMIN INTRO */}
+        {/* WELCOME */}
 
-        <section className="rounded-3xl border border-red-400/20 bg-gradient-to-br from-red-950/40 via-slate-900 to-slate-900 p-7">
+        <section className="rounded-3xl border border-red-400/20 bg-gradient-to-br from-red-950/30 via-slate-900 to-slate-900 p-7">
 
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-red-400">
-            Administration Control Centre
+            Administrator Dashboard
           </p>
 
           <h2 className="mt-3 text-4xl font-black">
-            Complaint Management
+            Complaint Management Centre
           </h2>
 
-          <p className="mt-3 max-w-3xl text-slate-400">
-            Manage student and faculty complaints,
-            assign responsible departments, monitor
-            deadlines, escalate unresolved matters and
-            record final resolutions.
+          <p className="mt-3 max-w-4xl text-slate-400">
+            Review every student and faculty complaint,
+            assign responsibility, escalate matters,
+            monitor deadlines and ensure timely resolution.
           </p>
 
           <div className="mt-6 flex flex-wrap gap-3">
 
             <button
               onClick={loadComplaints}
-              className="rounded-xl bg-blue-600 px-6 py-3 font-bold transition hover:bg-blue-500"
-            >
-              ↻ Refresh Complaints
-            </button>
-
-            <button
-              onClick={() => {
-                setSearch("");
-                setTypeFilter("All");
-                setStatusFilter("All");
-                setPriorityFilter("All");
-                setDepartmentFilter("All");
-                setShowOnlyOverdue(false);
-                setShowEscalatedOnly(false);
-              }}
               className="rounded-xl border border-slate-700 px-6 py-3 font-semibold transition hover:bg-slate-800"
             >
-              Clear Filters
+              ↻ Refresh Complaints
             </button>
 
           </div>
@@ -603,11 +571,11 @@ export default function AdminDashboard() {
 
         {/* STATISTICS */}
 
-        <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
+        <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
 
           <StatCard
             title="Total"
-            value={complaints.length}
+            value={totalCount}
             icon="📋"
           />
 
@@ -642,53 +610,82 @@ export default function AdminDashboard() {
           />
 
           <StatCard
-            title="Overdue"
-            value={overdueCount}
+            title="Urgent"
+            value={urgentCount}
             icon="⚠️"
+          />
+
+          <StatCard
+            title="Resolved"
+            value={resolvedCount}
+            icon="✅"
           />
 
         </section>
 
-        {/* FILTERS */}
+        {/* SEARCH AND FILTERS */}
 
         <section className="mt-8 rounded-2xl border border-slate-800 bg-slate-900 p-5">
 
-          <div className="flex flex-col gap-5">
+          <div className="flex flex-col gap-4">
 
             <div>
 
-              <h3 className="font-bold">
-                Search & Filter Complaints
+              <h3 className="text-xl font-bold">
+                Complaint Management
               </h3>
 
-              <p className="mt-1 text-xs text-slate-500">
-                Admin has visibility over every student
-                and faculty complaint.
+              <p className="mt-1 text-sm text-slate-500">
+                Search, filter and manage all complaints.
               </p>
 
             </div>
 
-            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+            <div className="grid gap-3 lg:grid-cols-2">
 
               <input
                 value={search}
                 onChange={(e) =>
                   setSearch(e.target.value)
                 }
-                placeholder="Search complaints..."
-                className="rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm outline-none focus:border-blue-400 xl:col-span-2"
+                placeholder="Search by complaint ID, title, name, ID or category..."
+                className="rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm outline-none focus:border-blue-400"
               />
+
+              <select
+                value={statusFilter}
+                onChange={(e) =>
+                  setStatusFilter(
+                    e.target.value
+                  )
+                }
+                className="rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm outline-none focus:border-blue-400"
+              >
+                <option value="All">
+                  All Statuses
+                </option>
+
+                {statuses.map((item) => (
+                  <option
+                    key={item}
+                    value={item}
+                  >
+                    {item}
+                  </option>
+                ))}
+              </select>
 
               <select
                 value={typeFilter}
                 onChange={(e) =>
-                  setTypeFilter(e.target.value)
+                  setTypeFilter(
+                    e.target.value
+                  )
                 }
-                className="rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm outline-none"
+                className="rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm outline-none focus:border-blue-400"
               >
-
                 <option value="All">
-                  All Users
+                  All Complainants
                 </option>
 
                 <option value="Student">
@@ -698,32 +695,6 @@ export default function AdminDashboard() {
                 <option value="Faculty">
                   Faculty
                 </option>
-
-              </select>
-
-              <select
-                value={statusFilter}
-                onChange={(e) =>
-                  setStatusFilter(e.target.value)
-                }
-                className="rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm outline-none"
-              >
-
-                <option value="All">
-                  All Statuses
-                </option>
-
-                {statuses.map(
-                  (status) => (
-                    <option
-                      key={status}
-                      value={status}
-                    >
-                      {status}
-                    </option>
-                  )
-                )}
-
               </select>
 
               <select
@@ -733,97 +704,51 @@ export default function AdminDashboard() {
                     e.target.value
                   )
                 }
-                className="rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm outline-none"
+                className="rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm outline-none focus:border-blue-400"
               >
-
                 <option value="All">
                   All Priorities
                 </option>
 
-                {priorities.map(
-                  (priority) => (
-                    <option
-                      key={priority}
-                      value={priority}
-                    >
-                      {priority}
-                    </option>
-                  )
-                )}
-
+                {priorities.map((item) => (
+                  <option
+                    key={item}
+                    value={item}
+                  >
+                    {item}
+                  </option>
+                ))}
               </select>
 
               <select
-                value={departmentFilter}
+                value={categoryFilter}
                 onChange={(e) =>
-                  setDepartmentFilter(
+                  setCategoryFilter(
                     e.target.value
                   )
                 }
-                className="rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm outline-none"
+                className="rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm outline-none focus:border-blue-400"
               >
-
                 <option value="All">
-                  All Departments
+                  All Categories
                 </option>
 
-                {departments.map(
-                  (department) => (
-                    <option
-                      key={department}
-                      value={department}
-                    >
-                      {department}
-                    </option>
-                  )
-                )}
-
+                {categories.map((item) => (
+                  <option
+                    key={item}
+                    value={item}
+                  >
+                    {item}
+                  </option>
+                ))}
               </select>
 
-            </div>
-
-            <div className="flex flex-wrap gap-3">
-
               <button
-                onClick={() =>
-                  setShowOnlyOverdue(
-                    !showOnlyOverdue
-                  )
-                }
-                className={`rounded-xl border px-4 py-2 text-sm font-semibold transition ${
-                  showOnlyOverdue
-                    ? "border-orange-400/40 bg-orange-500/10 text-orange-400"
-                    : "border-slate-700 text-slate-400 hover:bg-slate-800"
-                }`}
+                onClick={clearFilters}
+                className="rounded-xl border border-slate-700 px-4 py-3 text-sm font-semibold transition hover:bg-slate-800"
               >
-                ⚠️ Overdue Only
+                Clear Filters
               </button>
-
-              <button
-                onClick={() =>
-                  setShowEscalatedOnly(
-                    !showEscalatedOnly
-                  )
-                }
-                className={`rounded-xl border px-4 py-2 text-sm font-semibold transition ${
-                  showEscalatedOnly
-                    ? "border-red-400/40 bg-red-500/10 text-red-400"
-                    : "border-slate-700 text-slate-400 hover:bg-slate-800"
-                }`}
-              >
-                🚨 Escalated Only
-              </button>
-
-              <span className="flex items-center px-2 text-xs text-slate-500">
-                Showing{" "}
-                <strong className="mx-1 text-slate-300">
-                  {filteredComplaints.length}
-                </strong>
-                of{" "}
-                <strong className="mx-1 text-slate-300">
-                  {complaints.length}
-                </strong>
-              </span>
 
             </div>
 
@@ -831,22 +756,28 @@ export default function AdminDashboard() {
 
         </section>
 
-        {/* COMPLAINTS */}
+        {/* RESULTS */}
 
-        <section className="mt-8">
+        <div className="mt-6 flex items-center justify-between">
 
-          <div className="mb-5">
+          <div>
 
             <h3 className="text-2xl font-bold">
-              Complaint Register
+              Complaints
             </h3>
 
             <p className="mt-1 text-sm text-slate-500">
-              Every complaint is managed by the
-              Administrator.
+              Showing {filteredComplaints.length} of{" "}
+              {complaints.length} complaints
             </p>
 
           </div>
+
+        </div>
+
+        {/* COMPLAINT LIST */}
+
+        <section className="mt-5 space-y-4">
 
           {filteredComplaints.length === 0 ? (
 
@@ -861,131 +792,135 @@ export default function AdminDashboard() {
               </h3>
 
               <p className="mt-2 text-sm text-slate-500">
-                Try changing your filters or wait for
-                a new complaint.
+                Try changing your search or filters.
               </p>
 
             </div>
 
           ) : (
 
-            <div className="space-y-4">
+            filteredComplaints.map(
+              (complaint) => (
 
-              {filteredComplaints.map(
-                (complaint) => (
+                <article
+                  key={complaint.id}
+                  className="rounded-2xl border border-slate-800 bg-slate-900 p-5 transition hover:border-blue-400/30"
+                >
 
-                  <article
-                    key={complaint.id}
-                    className="rounded-2xl border border-slate-800 bg-slate-900 p-5 transition hover:border-blue-400/30"
-                  >
+                  <div className="flex flex-col justify-between gap-5 lg:flex-row">
 
-                    <div className="flex flex-col gap-5 lg:flex-row lg:items-center">
+                    <div className="flex-1">
 
-                      <div className="flex-1">
+                      <div className="flex flex-wrap items-center gap-3">
 
-                        <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-mono text-xs font-bold text-blue-400">
+                          {complaint.id}
+                        </span>
 
-                          <span className="font-mono text-xs font-bold text-blue-400">
-                            {complaint.id}
-                          </span>
+                        <span
+                          className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusClass(
+                            complaint.status
+                          )}`}
+                        >
+                          {complaint.status}
+                        </span>
 
-                          <span
-                            className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusClass(
-                              complaint.status
-                            )}`}
-                          >
-                            {complaint.status}
-                          </span>
+                        <span
+                          className={`text-xs font-bold ${priorityClass(
+                            complaint.priority
+                          )}`}
+                        >
+                          {complaint.priority} Priority
+                        </span>
 
-                          <span
-                            className={`text-xs font-bold ${priorityClass(
-                              complaint.priority
-                            )}`}
-                          >
-                            {complaint.priority}
-                          </span>
+                        <span className="rounded-full border border-slate-700 bg-slate-950 px-3 py-1 text-xs text-slate-400">
 
-                          <span className="rounded-full border border-slate-700 bg-slate-950 px-3 py-1 text-xs text-slate-400">
-                            {complaint.complainantType ===
-                            "student"
-                              ? "🎓 Student"
-                              : "👨‍🏫 Faculty"}
-                          </span>
+                          {complaint.complainantType ===
+                          "student"
+                            ? "🎓 Student"
+                            : "👨‍🏫 Faculty"}
 
-                          {isOverdue(
-                            complaint
-                          ) && (
-
-                            <span className="rounded-full border border-orange-400/30 bg-orange-500/10 px-3 py-1 text-xs font-bold text-orange-400">
-                              OVERDUE
-                            </span>
-
-                          )}
-
-                        </div>
-
-                        <h4 className="mt-3 text-xl font-bold">
-                          {complaint.title}
-                        </h4>
-
-                        <p className="mt-1 text-sm text-slate-500">
-                          {complaint.complainantName} •{" "}
-                          {complaint.complainantId}
-                        </p>
-
-                        <p className="mt-3 line-clamp-2 text-sm text-slate-400">
-                          {complaint.description}
-                        </p>
-
-                        <div className="mt-4 flex flex-wrap gap-4 text-xs text-slate-500">
-
-                          <span>
-                            Category:{" "}
-                            <strong className="text-slate-300">
-                              {complaint.category}
-                            </strong>
-                          </span>
-
-                          <span>
-                            Department:{" "}
-                            <strong className="text-slate-300">
-                              {complaint.assignedDepartment ||
-                                "Unassigned"}
-                            </strong>
-                          </span>
-
-                          <span>
-                            Submitted:{" "}
-                            <strong className="text-slate-300">
-                              {formatDate(
-                                complaint.submittedAt
-                              )}
-                            </strong>
-                          </span>
-
-                        </div>
+                        </span>
 
                       </div>
 
+                      <h4 className="mt-3 text-xl font-bold">
+                        {complaint.title}
+                      </h4>
+
+                      <p className="mt-2 text-sm text-slate-500">
+
+                        {complaint.category} •{" "}
+                        {complaint.complainantName} •{" "}
+                        {complaint.complainantId}
+
+                      </p>
+
+                      <p className="mt-3 text-xs text-slate-600">
+                        Submitted{" "}
+                        {formatDateTime(
+                          complaint.submittedAt
+                        )}
+                      </p>
+
+                      <p className="mt-4 line-clamp-2 text-sm leading-6 text-slate-400">
+                        {complaint.description}
+                      </p>
+
+                      <div className="mt-5 grid gap-3 sm:grid-cols-3">
+
+                        <MiniInfo
+                          label="Department"
+                          value={
+                            complaint.assignedDepartment ||
+                            "Not assigned"
+                          }
+                        />
+
+                        <MiniInfo
+                          label="Authority"
+                          value={
+                            complaint.assignedAuthority ||
+                            "Not assigned"
+                          }
+                        />
+
+                        <MiniInfo
+                          label="Deadline"
+                          value={
+                            complaint.dueDate
+                              ? formatDate(
+                                  complaint.dueDate
+                                )
+                              : "Not set"
+                          }
+                        />
+
+                      </div>
+
+                    </div>
+
+                    <div className="flex items-center">
+
                       <button
                         onClick={() =>
-                          setSelectedComplaint(
+                          openComplaint(
                             complaint
                           )
                         }
-                        className="rounded-xl bg-blue-600 px-6 py-3 text-sm font-bold transition hover:bg-blue-500"
+                        className="w-full rounded-xl bg-blue-600 px-6 py-3 text-sm font-bold transition hover:bg-blue-500 lg:w-auto"
                       >
                         Manage Complaint
                       </button>
 
                     </div>
 
-                  </article>
+                  </div>
 
-                )
-              )}
+                </article>
 
-            </div>
+              )
+            )
 
           )}
 
@@ -1028,13 +963,7 @@ export default function AdminDashboard() {
                 </h2>
 
                 <p className="mt-2 text-sm text-slate-500">
-                  Submitted by{" "}
-                  <strong className="text-slate-300">
-                    {selectedComplaint.complainantName}
-                  </strong>{" "}
-                  (
-                  {selectedComplaint.complainantType}
-                  ) on{" "}
+                  Submitted{" "}
                   {formatDateTime(
                     selectedComplaint.submittedAt
                   )}
@@ -1043,10 +972,9 @@ export default function AdminDashboard() {
               </div>
 
               <button
-                onClick={() => {
-                  setSelectedComplaint(null);
-                  setAdminMessage("");
-                }}
+                onClick={() =>
+                  setSelectedComplaint(null)
+                }
                 className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-700 text-xl text-slate-400 hover:bg-slate-800"
               >
                 ×
@@ -1054,417 +982,484 @@ export default function AdminDashboard() {
 
             </div>
 
-            <div className="grid gap-6 p-6 lg:grid-cols-2">
+            <div className="space-y-6 p-6">
 
-              {/* LEFT SIDE */}
+              {/* COMPLAINANT */}
 
-              <div className="space-y-5">
+              <section className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
 
-                <section className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
+                <h3 className="text-lg font-bold">
+                  Complainant Information
+                </h3>
 
-                  <h3 className="font-bold">
-                    Complaint Details
-                  </h3>
+                <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
 
-                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
-
-                    <Info
-                      label="Complainant"
-                      value={
-                        selectedComplaint.complainantName
-                      }
-                    />
-
-                    <Info
-                      label="ID"
-                      value={
-                        selectedComplaint.complainantId
-                      }
-                    />
-
-                    <Info
-                      label="Type"
-                      value={
-                        selectedComplaint.complainantType ===
-                        "student"
-                          ? "Student"
-                          : "Faculty"
-                      }
-                    />
-
-                    <Info
-                      label="Category"
-                      value={
-                        selectedComplaint.category
-                      }
-                    />
-
-                    <Info
-                      label="Priority"
-                      value={
-                        selectedComplaint.priority
-                      }
-                    />
-
-                    <Info
-                      label="Location"
-                      value={
-                        selectedComplaint.location
-                      }
-                    />
-
-                  </div>
-
-                  <div className="mt-4 rounded-xl border border-slate-800 bg-slate-950 p-4">
-
-                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                      Description
-                    </p>
-
-                    <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-slate-300">
-                      {
-                        selectedComplaint.description
-                      }
-                    </p>
-
-                  </div>
-
-                </section>
-
-                {/* STATUS */}
-
-                <section className="rounded-2xl border border-blue-400/20 bg-blue-500/5 p-5">
-
-                  <h3 className="font-bold text-blue-400">
-                    Complaint Status
-                  </h3>
-
-                  <label className="mt-4 block text-sm font-semibold">
-                    Status
-                  </label>
-
-                  <select
+                  <Info
+                    label="Type"
                     value={
-                      selectedComplaint.status
+                      selectedComplaint.complainantType ===
+                      "student"
+                        ? "Student"
+                        : "Faculty"
                     }
-                    onChange={(e) =>
-                      updateComplaint(
-                        selectedComplaint.id,
-                        {
-                          status:
-                            e.target.value,
-                        }
-                      )
-                    }
-                    className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm outline-none focus:border-blue-400"
-                  >
-
-                    {statuses.map(
-                      (status) => (
-                        <option
-                          key={status}
-                          value={status}
-                        >
-                          {status}
-                        </option>
-                      )
-                    )}
-
-                  </select>
-
-                </section>
-
-                {/* ADMIN REMARKS */}
-
-                <section className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
-
-                  <h3 className="font-bold">
-                    Administrative Remarks
-                  </h3>
-
-                  <textarea
-                    value={
-                      selectedComplaint.adminRemarks ||
-                      ""
-                    }
-                    onChange={(e) =>
-                      updateComplaint(
-                        selectedComplaint.id,
-                        {
-                          adminRemarks:
-                            e.target.value,
-                        }
-                      )
-                    }
-                    rows={5}
-                    placeholder="Enter remarks for the complainant..."
-                    className="mt-4 w-full resize-none rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm leading-6 outline-none focus:border-blue-400"
                   />
 
-                </section>
+                  <Info
+                    label="Name"
+                    value={
+                      selectedComplaint.complainantName
+                    }
+                  />
 
-              </div>
+                  <Info
+                    label="ID"
+                    value={
+                      selectedComplaint.complainantId
+                    }
+                  />
 
-              {/* RIGHT SIDE */}
+                  <Info
+                    label="Category"
+                    value={
+                      selectedComplaint.category
+                    }
+                  />
 
-              <div className="space-y-5">
+                </div>
 
-                {/* ASSIGNMENT */}
+              </section>
 
-                <section className="rounded-2xl border border-purple-400/20 bg-purple-500/5 p-5">
+              {/* ORIGINAL COMPLAINT */}
 
-                  <h3 className="font-bold text-purple-400">
-                    Assign Complaint
-                  </h3>
+              <section className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
 
-                  <p className="mt-1 text-xs text-slate-500">
-                    Only Admin can assign complaints to
-                    departments and authorities.
+                <h3 className="text-lg font-bold">
+                  Complaint Details
+                </h3>
+
+                <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+
+                  <Info
+                    label="Priority"
+                    value={
+                      selectedComplaint.priority
+                    }
+                  />
+
+                  <Info
+                    label="Location"
+                    value={
+                      selectedComplaint.location
+                    }
+                  />
+
+                  <Info
+                    label="Submitted"
+                    value={
+                      formatDateTime(
+                        selectedComplaint.submittedAt
+                      )
+                    }
+                  />
+
+                </div>
+
+                <div className="mt-4 rounded-xl border border-slate-800 bg-slate-950 p-4">
+
+                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    Description
                   </p>
 
-                  <label className="mt-5 block text-sm font-semibold">
-                    Concerned Department
-                  </label>
-
-                  <select
-                    value={
-                      selectedComplaint.assignedDepartment ||
-                      ""
+                  <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-slate-300">
+                    {
+                      selectedComplaint.description
                     }
-                    onChange={(e) =>
-                      updateComplaint(
-                        selectedComplaint.id,
-                        {
-                          assignedDepartment:
-                            e.target.value,
-                        }
-                      )
-                    }
-                    className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm outline-none focus:border-purple-400"
-                  >
+                  </p>
 
-                    <option value="">
-                      Select Department
-                    </option>
+                </div>
 
-                    {departments.map(
-                      (department) => (
-                        <option
-                          key={department}
-                          value={department}
-                        >
-                          {department}
-                        </option>
-                      )
-                    )}
+              </section>
 
-                  </select>
+              {/* ADMIN ACTION */}
 
-                  <label className="mt-4 block text-sm font-semibold">
-                    Responsible Authority
-                  </label>
+              <section className="rounded-2xl border border-blue-400/20 bg-blue-500/5 p-6">
 
-                  <input
-                    value={
-                      selectedComplaint.assignedAuthority ||
-                      ""
-                    }
-                    onChange={(e) =>
-                      updateComplaint(
-                        selectedComplaint.id,
-                        {
-                          assignedAuthority:
-                            e.target.value,
-                        }
-                      )
-                    }
-                    placeholder="e.g. HOD / HR Manager / Registrar"
-                    className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm outline-none focus:border-purple-400"
-                  />
+                <div>
 
-                  <label className="mt-4 block text-sm font-semibold">
-                    Resolution Deadline
-                  </label>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-blue-400">
+                    Administrator Authority
+                  </p>
 
-                  <input
-                    type="date"
-                    value={
-                      selectedComplaint.dueDate
-                        ? selectedComplaint.dueDate.slice(
-                            0,
-                            10
-                          )
-                        : ""
-                    }
-                    onChange={(e) =>
-                      updateComplaint(
-                        selectedComplaint.id,
-                        {
-                          dueDate:
-                            e.target.value,
-                        }
-                      )
-                    }
-                    className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm outline-none focus:border-purple-400"
-                  />
+                  <h3 className="mt-2 text-2xl font-bold">
+                    Administrative Action
+                  </h3>
 
-                  <button
-                    onClick={assignComplaint}
-                    className="mt-5 w-full rounded-xl bg-purple-600 px-5 py-3 font-bold transition hover:bg-purple-500"
-                  >
-                    Assign Complaint
-                  </button>
+                  <p className="mt-2 text-sm text-slate-500">
+                    Assign responsibility, set deadlines,
+                    change status and take necessary action.
+                  </p>
 
-                </section>
+                </div>
+
+                <div className="mt-6 grid gap-5 sm:grid-cols-2">
+
+                  {/* STATUS */}
+
+                  <div>
+
+                    <label className="mb-2 block text-sm font-semibold">
+                      Complaint Status
+                    </label>
+
+                    <select
+                      value={status}
+                      onChange={(e) =>
+                        setStatus(
+                          e.target.value
+                        )
+                      }
+                      className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm outline-none focus:border-blue-400"
+                    >
+
+                      {statuses.map(
+                        (item) => (
+                          <option
+                            key={item}
+                            value={item}
+                          >
+                            {item}
+                          </option>
+                        )
+                      )}
+
+                    </select>
+
+                  </div>
+
+                  {/* DEPARTMENT */}
+
+                  <div>
+
+                    <label className="mb-2 block text-sm font-semibold">
+                      Assign Department
+                    </label>
+
+                    <select
+                      value={department}
+                      onChange={(e) =>
+                        setDepartment(
+                          e.target.value
+                        )
+                      }
+                      className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm outline-none focus:border-blue-400"
+                    >
+
+                      <option value="">
+                        Select Department
+                      </option>
+
+                      {departments.map(
+                        (item) => (
+                          <option
+                            key={item}
+                            value={item}
+                          >
+                            {item}
+                          </option>
+                        )
+                      )}
+
+                    </select>
+
+                  </div>
+
+                  {/* AUTHORITY */}
+
+                  <div>
+
+                    <label className="mb-2 block text-sm font-semibold">
+                      Responsible Authority
+                    </label>
+
+                    <select
+                      value={authority}
+                      onChange={(e) =>
+                        setAuthority(
+                          e.target.value
+                        )
+                      }
+                      className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm outline-none focus:border-blue-400"
+                    >
+
+                      <option value="">
+                        Select Authority
+                      </option>
+
+                      {authorities.map(
+                        (item) => (
+                          <option
+                            key={item}
+                            value={item}
+                          >
+                            {item}
+                          </option>
+                        )
+                      )}
+
+                    </select>
+
+                  </div>
+
+                  {/* DEADLINE */}
+
+                  <div>
+
+                    <label className="mb-2 block text-sm font-semibold">
+                      Resolution Deadline
+                    </label>
+
+                    <input
+                      type="date"
+                      value={dueDate}
+                      onChange={(e) =>
+                        setDueDate(
+                          e.target.value
+                        )
+                      }
+                      className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm outline-none focus:border-blue-400"
+                    />
+
+                  </div>
+
+                </div>
 
                 {/* ESCALATION */}
 
-                <section className="rounded-2xl border border-red-400/20 bg-red-500/5 p-5">
+                <div className="mt-6 rounded-2xl border border-red-400/20 bg-red-500/5 p-5">
 
-                  <h3 className="font-bold text-red-400">
-                    🚨 Escalate Complaint
-                  </h3>
+                  <div>
 
-                  <p className="mt-1 text-xs text-slate-500">
-                    Escalate matters requiring intervention
-                    from a higher authority.
-                  </p>
+                    <h4 className="font-bold text-red-400">
+                      🚨 Escalation
+                    </h4>
 
-                  <label className="mt-5 block text-sm font-semibold">
-                    Escalate To
-                  </label>
+                    <p className="mt-1 text-sm text-slate-500">
+                      Use this when the matter requires
+                      intervention from a higher authority.
+                    </p>
 
-                  <input
-                    value={
-                      selectedComplaint.escalatedTo ||
-                      ""
-                    }
-                    onChange={(e) =>
-                      updateComplaint(
-                        selectedComplaint.id,
-                        {
-                          escalatedTo:
-                            e.target.value,
+                  </div>
+
+                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
+
+                    <div>
+
+                      <label className="mb-2 block text-sm font-semibold">
+                        Escalate To
+                      </label>
+
+                      <select
+                        value={escalatedTo}
+                        onChange={(e) =>
+                          setEscalatedTo(
+                            e.target.value
+                          )
                         }
-                      )
-                    }
-                    placeholder="e.g. Principal / Registrar / Governing Body"
-                    className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm outline-none focus:border-red-400"
-                  />
+                        className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm outline-none focus:border-red-400"
+                      >
 
-                  <label className="mt-4 block text-sm font-semibold">
-                    Reason for Escalation
+                        <option value="">
+                          Select Higher Authority
+                        </option>
+
+                        {authorities.map(
+                          (item) => (
+                            <option
+                              key={item}
+                              value={item}
+                            >
+                              {item}
+                            </option>
+                          )
+                        )}
+
+                      </select>
+
+                    </div>
+
+                    <div>
+
+                      <label className="mb-2 block text-sm font-semibold">
+                        Escalation Reason
+                      </label>
+
+                      <input
+                        value={escalationReason}
+                        onChange={(e) =>
+                          setEscalationReason(
+                            e.target.value
+                          )
+                        }
+                        placeholder="Why is this being escalated?"
+                        className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm outline-none focus:border-red-400"
+                      />
+
+                    </div>
+
+                  </div>
+
+                </div>
+
+                {/* REMARKS */}
+
+                <div className="mt-6">
+
+                  <label className="mb-2 block text-sm font-semibold">
+                    Administrative Remarks
                   </label>
 
                   <textarea
-                    value={
-                      selectedComplaint.escalationReason ||
-                      ""
-                    }
+                    value={adminRemarks}
                     onChange={(e) =>
-                      updateComplaint(
-                        selectedComplaint.id,
-                        {
-                          escalationReason:
-                            e.target.value,
-                        }
-                      )
-                    }
-                    rows={4}
-                    placeholder="Why does this matter require escalation?"
-                    className="mt-2 w-full resize-none rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm outline-none focus:border-red-400"
-                  />
-
-                  <button
-                    onClick={escalateComplaint}
-                    className="mt-5 w-full rounded-xl bg-red-600 px-5 py-3 font-bold transition hover:bg-red-500"
-                  >
-                    Escalate Matter
-                  </button>
-
-                </section>
-
-                {/* RESOLUTION */}
-
-                <section className="rounded-2xl border border-green-400/20 bg-green-500/5 p-5">
-
-                  <h3 className="font-bold text-green-400">
-                    Resolution
-                  </h3>
-
-                  <textarea
-                    value={
-                      selectedComplaint.resolutionDetails ||
-                      ""
-                    }
-                    onChange={(e) =>
-                      updateComplaint(
-                        selectedComplaint.id,
-                        {
-                          resolutionDetails:
-                            e.target.value,
-                        }
+                      setAdminRemarks(
+                        e.target.value
                       )
                     }
                     rows={5}
-                    placeholder="Describe the action taken and final resolution..."
-                    className="mt-4 w-full resize-none rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm leading-6 outline-none focus:border-green-400"
+                    placeholder="Add instructions, observations or administrative remarks..."
+                    className="w-full resize-none rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm leading-6 outline-none focus:border-blue-400"
                   />
 
-                  <button
-                    onClick={markResolved}
-                    className="mt-4 w-full rounded-xl bg-green-600 px-5 py-3 font-bold transition hover:bg-green-500"
-                  >
-                    Mark as Resolved
-                  </button>
+                </div>
 
-                </section>
+                {/* RESOLUTION */}
 
-              </div>
+                <div className="mt-5">
+
+                  <label className="mb-2 block text-sm font-semibold">
+                    Resolution Details
+                  </label>
+
+                  <textarea
+                    value={resolutionDetails}
+                    onChange={(e) =>
+                      setResolutionDetails(
+                        e.target.value
+                      )
+                    }
+                    rows={5}
+                    placeholder="Describe the action taken or resolution provided..."
+                    className="w-full resize-none rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm leading-6 outline-none focus:border-green-400"
+                  />
+
+                </div>
+
+                {updateMessage && (
+
+                  <div className="mt-5 rounded-xl border border-green-400/20 bg-green-500/10 p-4 text-sm font-semibold text-green-400">
+                    {updateMessage}
+                  </div>
+
+                )}
+
+                <button
+                  onClick={updateComplaint}
+                  className="mt-6 w-full rounded-xl bg-blue-600 px-6 py-4 font-bold transition hover:bg-blue-500"
+                >
+                  Save Administrative Action
+                </button>
+
+              </section>
+
+              {/* CURRENT STATUS */}
+
+              <section className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
+
+                <h3 className="font-bold">
+                  Current Administrative Record
+                </h3>
+
+                <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+
+                  <Info
+                    label="Status"
+                    value={
+                      selectedComplaint.status
+                    }
+                  />
+
+                  <Info
+                    label="Department"
+                    value={
+                      selectedComplaint.assignedDepartment ||
+                      "Not assigned"
+                    }
+                  />
+
+                  <Info
+                    label="Authority"
+                    value={
+                      selectedComplaint.assignedAuthority ||
+                      "Not assigned"
+                    }
+                  />
+
+                  <Info
+                    label="Deadline"
+                    value={
+                      selectedComplaint.dueDate
+                        ? formatDate(
+                            selectedComplaint.dueDate
+                          )
+                        : "Not set"
+                    }
+                  />
+
+                  <Info
+                    label="Escalated To"
+                    value={
+                      selectedComplaint.escalatedTo ||
+                      "Not escalated"
+                    }
+                  />
+
+                  <Info
+                    label="Escalation Level"
+                    value={String(
+                      selectedComplaint.escalationLevel ||
+                        0
+                    )}
+                  />
+
+                </div>
+
+                {selectedComplaint.updatedAt && (
+
+                  <p className="mt-4 text-xs text-slate-600">
+                    Last administrative update:{" "}
+                    {formatDateTime(
+                      selectedComplaint.updatedAt
+                    )}
+                  </p>
+
+                )}
+
+              </section>
 
             </div>
 
-            {/* ADMIN ACTION BAR */}
+            {/* FOOTER */}
 
-            <div className="border-t border-slate-800 p-6">
+            <div className="flex justify-end border-t border-slate-800 p-6">
 
-              {adminMessage && (
-
-                <div className="mb-4 rounded-xl border border-blue-400/20 bg-blue-500/10 p-4 text-sm font-medium text-blue-400">
-                  {adminMessage}
-                </div>
-
-              )}
-
-              <div className="flex flex-wrap gap-3">
-
-                <button
-                  onClick={closeComplaint}
-                  className="rounded-xl border border-slate-700 px-5 py-3 text-sm font-semibold transition hover:bg-slate-800"
-                >
-                  Close Complaint
-                </button>
-
-                <button
-                  onClick={rejectComplaint}
-                  className="rounded-xl border border-red-400/30 px-5 py-3 text-sm font-semibold text-red-400 transition hover:bg-red-500/10"
-                >
-                  Reject Complaint
-                </button>
-
-                <div className="flex-1" />
-
-                <button
-                  onClick={() => {
-                    setSelectedComplaint(null);
-                    setAdminMessage("");
-                  }}
-                  className="rounded-xl bg-slate-800 px-6 py-3 text-sm font-semibold transition hover:bg-slate-700"
-                >
-                  Done
-                </button>
-
-              </div>
+              <button
+                onClick={() =>
+                  setSelectedComplaint(null)
+                }
+                className="rounded-xl border border-slate-700 px-6 py-3 font-semibold transition hover:bg-slate-800"
+              >
+                Close
+              </button>
 
             </div>
 
@@ -1488,22 +1483,44 @@ function StatCard({
   icon: string;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
+    <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
 
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
 
-        <span className="text-2xl">
+        <span className="text-xl">
           {icon}
         </span>
 
-        <span className="text-3xl font-black">
+        <span className="text-2xl font-black">
           {value}
         </span>
 
       </div>
 
-      <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
+      <p className="mt-3 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
         {title}
+      </p>
+
+    </div>
+  );
+}
+
+function MiniInfo({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-xl border border-slate-800 bg-slate-950 p-3">
+
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-600">
+        {label}
+      </p>
+
+      <p className="mt-1 truncate text-xs font-medium text-slate-300">
+        {value}
       </p>
 
     </div>
