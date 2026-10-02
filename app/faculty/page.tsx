@@ -7,11 +7,13 @@ type Complaint = {
   complainantType: "student" | "faculty";
   complainantName: string;
   complainantId: string;
+
   title: string;
   category: string;
   description: string;
   location: string;
   priority: string;
+
   status: string;
   submittedAt: string;
 
@@ -25,31 +27,28 @@ type Complaint = {
 
   adminRemarks?: string;
   resolutionDetails?: string;
+
+  updatedAt?: string;
 };
 
 const STORAGE_KEY = "dsceComplaints";
 
-const facultyCategories = [
+const categories = [
   "Salary / Payroll",
   "Students",
   "Infrastructure",
   "Colleagues",
   "Administration",
+  "Workload",
   "Academic",
-  "Human Resources",
-  "Workplace",
   "Examination",
+  "IT / Technical",
   "Leave / Attendance",
-  "IT / Technology",
+  "HR / Service",
   "Other",
 ];
 
-const priorities = [
-  "Low",
-  "Medium",
-  "High",
-  "Urgent",
-];
+const priorities = ["Low", "Medium", "High", "Urgent"];
 
 function formatDate(date?: string) {
   if (!date) return "Not set";
@@ -134,24 +133,20 @@ function priorityClass(priority: string) {
 
 export default function FacultyDashboard() {
   const [complaints, setComplaints] = useState<Complaint[]>([]);
-
-  const [facultyName, setFacultyName] =
-    useState("Faculty Member");
-
-  const [facultyId, setFacultyId] =
-    useState("");
-
   const [selectedComplaint, setSelectedComplaint] =
     useState<Complaint | null>(null);
 
-  const [showForm, setShowForm] =
-    useState(false);
+  const [showForm, setShowForm] = useState(false);
 
-  const [title, setTitle] =
-    useState("");
+  const [facultyName, setFacultyName] =
+    useState("Faculty");
 
+  const [facultyId, setFacultyId] =
+    useState("Faculty");
+
+  const [title, setTitle] = useState("");
   const [category, setCategory] =
-    useState("");
+    useState(categories[0]);
 
   const [description, setDescription] =
     useState("");
@@ -162,7 +157,7 @@ export default function FacultyDashboard() {
   const [priority, setPriority] =
     useState("Medium");
 
-  const [formMessage, setFormMessage] =
+  const [submitMessage, setSubmitMessage] =
     useState("");
 
   useEffect(() => {
@@ -203,89 +198,83 @@ export default function FacultyDashboard() {
     }
   }
 
+  /*
+   * Faculty can ONLY see complaints submitted
+   * by faculty members.
+   *
+   * Student complaints are intentionally excluded.
+   */
   const myComplaints = useMemo(() => {
-    if (!facultyId) {
-      return [];
+    const facultyComplaints = complaints.filter(
+      (complaint) =>
+        complaint.complainantType === "faculty"
+    );
+
+    if (facultyId && facultyId !== "Faculty") {
+      return facultyComplaints.filter(
+        (complaint) =>
+          complaint.complainantId === facultyId
+      );
     }
 
-    return complaints.filter(
-      (complaint) =>
-        complaint.complainantType ===
-          "faculty" &&
-        complaint.complainantId === facultyId
-    );
-  }, [complaints, facultyId]);
+    if (facultyName && facultyName !== "Faculty") {
+      return facultyComplaints.filter(
+        (complaint) =>
+          complaint.complainantName === facultyName
+      );
+    }
 
-  const totalComplaints =
-    myComplaints.length;
+    return facultyComplaints;
+  }, [complaints, facultyId, facultyName]);
 
-  const pendingComplaints =
-    myComplaints.filter(
-      (complaint) =>
-        complaint.status === "Pending"
-    ).length;
+  const pendingCount = myComplaints.filter(
+    (complaint) =>
+      complaint.status === "Pending"
+  ).length;
 
-  const activeComplaints =
-    myComplaints.filter(
-      (complaint) =>
-        complaint.status ===
-          "Under Review" ||
-        complaint.status ===
-          "Assigned" ||
-        complaint.status ===
-          "In Progress" ||
-        complaint.status ===
-          "Escalated"
-    ).length;
+  const activeCount = myComplaints.filter(
+    (complaint) =>
+      complaint.status === "Under Review" ||
+      complaint.status === "Assigned" ||
+      complaint.status === "In Progress"
+  ).length;
 
-  const resolvedComplaints =
-    myComplaints.filter(
-      (complaint) =>
-        complaint.status ===
-          "Resolved" ||
-        complaint.status ===
-          "Closed"
-    ).length;
+  const escalatedCount = myComplaints.filter(
+    (complaint) =>
+      complaint.status === "Escalated"
+  ).length;
+
+  const resolvedCount = myComplaints.filter(
+    (complaint) =>
+      complaint.status === "Resolved" ||
+      complaint.status === "Closed"
+  ).length;
 
   function submitComplaint() {
-    setFormMessage("");
-
-    if (!facultyId) {
-      setFormMessage(
-        "Faculty ID could not be identified. Please login again."
-      );
-      return;
-    }
-
     if (!title.trim()) {
-      setFormMessage(
+      setSubmitMessage(
         "Please enter a complaint title."
       );
       return;
     }
 
-    if (!category) {
-      setFormMessage(
-        "Please select a complaint category."
-      );
-      return;
-    }
-
     if (!description.trim()) {
-      setFormMessage(
+      setSubmitMessage(
         "Please describe your complaint."
       );
       return;
     }
 
     const newComplaint: Complaint = {
-      id: `FAC-${Date.now()}`,
+      id: `CMP-${Date.now()}`,
 
       complainantType: "faculty",
 
-      complainantName: facultyName,
+      complainantName:
+        facultyName || "Faculty",
 
-      complainantId: facultyId,
+      complainantId:
+        facultyId || "Faculty",
 
       title: title.trim(),
 
@@ -293,13 +282,33 @@ export default function FacultyDashboard() {
 
       description: description.trim(),
 
-      location: location.trim(),
+      location:
+        location.trim() || "Not provided",
 
       priority,
 
       status: "Pending",
 
       submittedAt:
+        new Date().toISOString(),
+
+      assignedDepartment: "",
+
+      assignedAuthority: "",
+
+      dueDate: "",
+
+      escalationLevel: 0,
+
+      escalatedTo: "",
+
+      escalationReason: "",
+
+      adminRemarks: "",
+
+      resolutionDetails: "",
+
+      updatedAt:
         new Date().toISOString(),
     };
 
@@ -321,8 +330,8 @@ export default function FacultyDashboard() {
     }
 
     const updated = [
-      ...existing,
       newComplaint,
+      ...existing,
     ];
 
     localStorage.setItem(
@@ -333,19 +342,23 @@ export default function FacultyDashboard() {
     setComplaints(updated);
 
     setTitle("");
-    setCategory("");
+    setCategory(categories[0]);
     setDescription("");
     setLocation("");
     setPriority("Medium");
 
-    setFormMessage(
-      `Complaint submitted successfully. Ticket ID: ${newComplaint.id}`
+    setSubmitMessage(
+      "Complaint submitted successfully."
     );
 
     setTimeout(() => {
+      setSubmitMessage("");
       setShowForm(false);
-      setFormMessage("");
     }, 1800);
+  }
+
+  function refreshComplaints() {
+    loadComplaints();
   }
 
   return (
@@ -359,7 +372,7 @@ export default function FacultyDashboard() {
 
           <div className="flex items-center gap-3">
 
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-cyan-400 text-xl font-black">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-cyan-500 text-xl font-black">
               D
             </div>
 
@@ -369,7 +382,7 @@ export default function FacultyDashboard() {
                 DSCE CONNECT
               </h1>
 
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-blue-400">
                 Faculty Portal
               </p>
 
@@ -386,7 +399,7 @@ export default function FacultyDashboard() {
               </p>
 
               <p className="text-xs text-slate-500">
-                {facultyId || "Faculty"}
+                {facultyId}
               </p>
 
             </div>
@@ -404,15 +417,15 @@ export default function FacultyDashboard() {
 
       </header>
 
-      {/* MAIN */}
+      {/* CONTENT */}
 
       <div className="mx-auto max-w-7xl px-6 py-8">
 
         {/* WELCOME */}
 
-        <section className="rounded-3xl border border-purple-400/20 bg-gradient-to-br from-purple-950/50 via-slate-900 to-slate-900 p-7">
+        <section className="rounded-3xl border border-blue-400/20 bg-gradient-to-br from-blue-950/50 via-slate-900 to-slate-900 p-7">
 
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-purple-400">
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-blue-400">
             Faculty Dashboard
           </p>
 
@@ -421,87 +434,87 @@ export default function FacultyDashboard() {
           </h2>
 
           <p className="mt-3 max-w-3xl text-slate-400">
-            Report workplace, academic, student,
-            infrastructure, salary and other concerns.
-            Track the progress of every complaint submitted
-            by you.
+            Submit workplace complaints, raise concerns
+            and track administrative action taken by
+            DSCE.
           </p>
 
-          <button
-            onClick={() => {
-              setShowForm(true);
-              setFormMessage("");
-            }}
-            className="mt-6 rounded-xl bg-gradient-to-r from-purple-600 to-blue-500 px-6 py-3 font-bold transition hover:from-purple-500 hover:to-blue-400"
-          >
-            + Submit Faculty Complaint
-          </button>
+          <div className="mt-6 flex flex-wrap gap-3">
+
+            <button
+              onClick={() =>
+                setShowForm(true)
+              }
+              className="rounded-xl bg-blue-600 px-6 py-3 font-bold transition hover:bg-blue-500"
+            >
+              + Submit New Complaint
+            </button>
+
+            <button
+              onClick={refreshComplaints}
+              className="rounded-xl border border-slate-700 px-6 py-3 font-semibold transition hover:bg-slate-800"
+            >
+              ↻ Refresh
+            </button>
+
+          </div>
 
         </section>
 
         {/* STATISTICS */}
 
-        <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
 
-          <DashboardCard
-            title="My Complaints"
-            value={totalComplaints}
+          <StatCard
+            title="Total"
+            value={myComplaints.length}
             icon="📋"
           />
 
-          <DashboardCard
+          <StatCard
             title="Pending"
-            value={pendingComplaints}
+            value={pendingCount}
             icon="⏳"
           />
 
-          <DashboardCard
+          <StatCard
             title="Active"
-            value={activeComplaints}
+            value={activeCount}
             icon="🔄"
           />
 
-          <DashboardCard
+          <StatCard
+            title="Escalated"
+            value={escalatedCount}
+            icon="🚨"
+          />
+
+          <StatCard
             title="Resolved"
-            value={resolvedComplaints}
+            value={resolvedCount}
             icon="✅"
           />
 
         </section>
 
-        {/* PERMISSION NOTICE */}
+        {/* COMPLAINTS HEADER */}
 
-        <div className="mt-6 rounded-2xl border border-blue-400/10 bg-blue-500/5 p-5">
+        <div className="mt-8">
 
-          <p className="text-sm font-semibold text-blue-400">
-            🔒 Faculty Access
-          </p>
+          <h3 className="text-2xl font-bold">
+            My Complaints
+          </h3>
 
-          <p className="mt-2 text-sm leading-6 text-slate-400">
-            You can submit and track your own complaints.
-            Complaint assignment, escalation, status
-            management and administrative action are
-            handled exclusively by the administration.
+          <p className="mt-1 text-sm text-slate-500">
+            Only complaints submitted by your faculty
+            account are shown here.
           </p>
 
         </div>
 
         {/* COMPLAINT LIST */}
 
-        <section className="mt-8">
-
-          <div className="mb-5">
-
-            <h3 className="text-2xl font-bold">
-              My Complaints
-            </h3>
-
-            <p className="mt-1 text-sm text-slate-500">
-              Only complaints submitted by you are
-              displayed here.
-            </p>
-
-          </div>
+        <section className="mt-5 space-y-4">
 
           {myComplaints.length === 0 ? (
 
@@ -515,110 +528,120 @@ export default function FacultyDashboard() {
                 No complaints yet
               </h3>
 
-              <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
-                You haven't submitted any complaints yet.
+              <p className="mt-2 text-sm text-slate-500">
+                Submit a complaint whenever you need
+                administrative assistance.
               </p>
-
-              <button
-                onClick={() => setShowForm(true)}
-                className="mt-6 rounded-xl bg-purple-600 px-6 py-3 font-semibold transition hover:bg-purple-500"
-              >
-                Submit a Complaint
-              </button>
 
             </div>
 
           ) : (
 
-            <div className="space-y-4">
+            myComplaints.map(
+              (complaint) => (
 
-              {myComplaints.map(
-                (complaint) => (
+                <article
+                  key={complaint.id}
+                  className="rounded-2xl border border-slate-800 bg-slate-900 p-5 transition hover:border-blue-400/30"
+                >
 
-                  <button
-                    key={complaint.id}
-                    onClick={() =>
-                      setSelectedComplaint(
-                        complaint
-                      )
-                    }
-                    className="w-full rounded-2xl border border-slate-800 bg-slate-900 p-5 text-left transition hover:border-purple-500/40"
-                  >
+                  <div className="flex flex-col justify-between gap-5 lg:flex-row">
 
-                    <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex-1">
 
-                      <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-3">
 
-                        <div className="flex flex-wrap items-center gap-3">
+                        <span className="font-mono text-xs font-bold text-blue-400">
+                          {complaint.id}
+                        </span>
 
-                          <span className="font-mono text-sm font-bold text-purple-400">
-                            {complaint.id}
-                          </span>
+                        <span
+                          className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusClass(
+                            complaint.status
+                          )}`}
+                        >
+                          {complaint.status}
+                        </span>
 
-                          <span
-                            className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusClass(
-                              complaint.status
-                            )}`}
-                          >
-                            {complaint.status}
-                          </span>
-
-                        </div>
-
-                        <h4 className="mt-3 text-lg font-bold">
-                          {complaint.title}
-                        </h4>
-
-                        <div className="mt-2 flex flex-wrap gap-4 text-xs text-slate-500">
-
-                          <span>
-                            Category:{" "}
-                            {complaint.category}
-                          </span>
-
-                          <span>
-                            Submitted:{" "}
-                            {formatDate(
-                              complaint.submittedAt
-                            )}
-                          </span>
-
-                        </div>
+                        <span
+                          className={`text-xs font-bold ${priorityClass(
+                            complaint.priority
+                          )}`}
+                        >
+                          {complaint.priority} Priority
+                        </span>
 
                       </div>
 
-                      <div className="flex shrink-0 items-center gap-5">
+                      <h4 className="mt-3 text-xl font-bold">
+                        {complaint.title}
+                      </h4>
 
-                        <div className="text-right">
+                      <p className="mt-2 text-sm text-slate-500">
+                        {complaint.category} • Submitted{" "}
+                        {formatDate(
+                          complaint.submittedAt
+                        )}
+                      </p>
 
-                          <p className="text-xs text-slate-600">
-                            Priority
-                          </p>
+                      <p className="mt-4 line-clamp-2 text-sm leading-6 text-slate-400">
+                        {complaint.description}
+                      </p>
 
-                          <p
-                            className={`mt-1 text-sm font-bold ${priorityClass(
-                              complaint.priority
-                            )}`}
-                          >
-                            {complaint.priority}
-                          </p>
+                      <div className="mt-5 grid gap-3 sm:grid-cols-3">
 
-                        </div>
+                        <MiniInfo
+                          label="Department"
+                          value={
+                            complaint.assignedDepartment ||
+                            "Not assigned"
+                          }
+                        />
 
-                        <span className="text-xl text-slate-600">
-                          →
-                        </span>
+                        <MiniInfo
+                          label="Authority"
+                          value={
+                            complaint.assignedAuthority ||
+                            "Not assigned"
+                          }
+                        />
+
+                        <MiniInfo
+                          label="Deadline"
+                          value={
+                            complaint.dueDate
+                              ? formatDate(
+                                  complaint.dueDate
+                                )
+                              : "Not set"
+                          }
+                        />
 
                       </div>
 
                     </div>
 
-                  </button>
+                    <div className="flex items-center">
 
-                )
-              )}
+                      <button
+                        onClick={() =>
+                          setSelectedComplaint(
+                            complaint
+                          )
+                        }
+                        className="w-full rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold transition hover:bg-blue-500 lg:w-auto"
+                      >
+                        View Details
+                      </button>
 
-            </div>
+                    </div>
+
+                  </div>
+
+                </article>
+
+              )
+            )
 
           )}
 
@@ -638,8 +661,8 @@ export default function FacultyDashboard() {
 
               <div>
 
-                <p className="text-xs font-semibold uppercase tracking-wider text-purple-400">
-                  Faculty Complaint
+                <p className="text-sm font-semibold uppercase tracking-wider text-blue-400">
+                  New Faculty Complaint
                 </p>
 
                 <h2 className="mt-2 text-2xl font-bold">
@@ -647,8 +670,8 @@ export default function FacultyDashboard() {
                 </h2>
 
                 <p className="mt-2 text-sm text-slate-500">
-                  Your complaint will be reviewed and
-                  managed by the administration.
+                  Your complaint will be sent to the
+                  DSCE administration for review.
                 </p>
 
               </div>
@@ -679,8 +702,8 @@ export default function FacultyDashboard() {
                   onChange={(e) =>
                     setTitle(e.target.value)
                   }
-                  placeholder="Briefly describe your issue"
-                  className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm outline-none focus:border-purple-400"
+                  placeholder="Enter a short title"
+                  className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm outline-none focus:border-blue-400"
                 />
 
               </div>
@@ -696,16 +719,14 @@ export default function FacultyDashboard() {
                 <select
                   value={category}
                   onChange={(e) =>
-                    setCategory(e.target.value)
+                    setCategory(
+                      e.target.value
+                    )
                   }
-                  className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm outline-none focus:border-purple-400"
+                  className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm outline-none focus:border-blue-400"
                 >
 
-                  <option value="">
-                    Select category
-                  </option>
-
-                  {facultyCategories.map(
+                  {categories.map(
                     (item) => (
                       <option
                         key={item}
@@ -731,9 +752,11 @@ export default function FacultyDashboard() {
                 <select
                   value={priority}
                   onChange={(e) =>
-                    setPriority(e.target.value)
+                    setPriority(
+                      e.target.value
+                    )
                   }
-                  className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm outline-none focus:border-purple-400"
+                  className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm outline-none focus:border-blue-400"
                 >
 
                   {priorities.map(
@@ -762,10 +785,12 @@ export default function FacultyDashboard() {
                 <input
                   value={location}
                   onChange={(e) =>
-                    setLocation(e.target.value)
+                    setLocation(
+                      e.target.value
+                    )
                   }
-                  placeholder="Block / room / department / other location"
-                  className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm outline-none focus:border-purple-400"
+                  placeholder="Where did the issue occur?"
+                  className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm outline-none focus:border-blue-400"
                 />
 
               </div>
@@ -775,36 +800,34 @@ export default function FacultyDashboard() {
               <div>
 
                 <label className="mb-2 block text-sm font-semibold">
-                  Complaint Description
+                  Description
                 </label>
 
                 <textarea
                   value={description}
                   onChange={(e) =>
-                    setDescription(e.target.value)
+                    setDescription(
+                      e.target.value
+                    )
                   }
-                  rows={6}
+                  rows={7}
                   placeholder="Explain the issue in detail..."
-                  className="w-full resize-none rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm leading-6 outline-none focus:border-purple-400"
+                  className="w-full resize-none rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm leading-6 outline-none focus:border-blue-400"
                 />
 
               </div>
 
-              {/* MESSAGE */}
+              {submitMessage && (
 
-              {formMessage && (
-
-                <div className="rounded-xl border border-blue-400/20 bg-blue-500/10 p-4 text-sm text-blue-300">
-                  {formMessage}
+                <div className="rounded-xl border border-blue-400/20 bg-blue-500/10 p-4 text-sm font-medium text-blue-400">
+                  {submitMessage}
                 </div>
 
               )}
 
-              {/* SUBMIT */}
-
               <button
                 onClick={submitComplaint}
-                className="w-full rounded-xl bg-gradient-to-r from-purple-600 to-blue-500 px-5 py-3.5 font-bold transition hover:from-purple-500 hover:to-blue-400"
+                className="w-full rounded-xl bg-blue-600 px-5 py-3.5 font-bold transition hover:bg-blue-500"
               >
                 Submit Complaint
               </button>
@@ -817,25 +840,46 @@ export default function FacultyDashboard() {
 
       )}
 
-      {/* COMPLAINT DETAILS MODAL */}
+      {/* DETAILS MODAL */}
 
       {selectedComplaint && (
 
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black/80 p-4 backdrop-blur-sm">
 
-          <div className="mx-auto my-8 max-w-3xl rounded-3xl border border-slate-700 bg-slate-950 shadow-2xl">
+          <div className="mx-auto my-8 max-w-4xl rounded-3xl border border-slate-700 bg-slate-950 shadow-2xl">
+
+            {/* HEADER */}
 
             <div className="flex items-start justify-between border-b border-slate-800 p-6">
 
               <div>
 
-                <span className="font-mono text-sm font-bold text-purple-400">
-                  {selectedComplaint.id}
-                </span>
+                <div className="flex flex-wrap items-center gap-3">
+
+                  <span className="font-mono text-sm font-bold text-blue-400">
+                    {selectedComplaint.id}
+                  </span>
+
+                  <span
+                    className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusClass(
+                      selectedComplaint.status
+                    )}`}
+                  >
+                    {selectedComplaint.status}
+                  </span>
+
+                </div>
 
                 <h2 className="mt-3 text-2xl font-bold">
                   {selectedComplaint.title}
                 </h2>
+
+                <p className="mt-2 text-sm text-slate-500">
+                  Submitted{" "}
+                  {formatDateTime(
+                    selectedComplaint.submittedAt
+                  )}
+                </p>
 
               </div>
 
@@ -850,84 +894,89 @@ export default function FacultyDashboard() {
 
             </div>
 
-            <div className="space-y-5 p-6">
+            <div className="space-y-6 p-6">
 
-              {/* STATUS */}
+              {/* ORIGINAL COMPLAINT */}
 
-              <div className="rounded-2xl border border-blue-400/20 bg-blue-500/5 p-5">
-
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                  Current Status
-                </p>
-
-                <span
-                  className={`mt-3 inline-flex rounded-full border px-4 py-2 text-sm font-bold ${statusClass(
-                    selectedComplaint.status
-                  )}`}
-                >
-                  {selectedComplaint.status}
-                </span>
-
-              </div>
-
-              {/* DETAILS */}
-
-              <div className="grid gap-4 sm:grid-cols-2">
-
-                <Info
-                  label="Category"
-                  value={
-                    selectedComplaint.category
-                  }
-                />
-
-                <Info
-                  label="Priority"
-                  value={
-                    selectedComplaint.priority
-                  }
-                />
-
-                <Info
-                  label="Submitted"
-                  value={formatDateTime(
-                    selectedComplaint.submittedAt
-                  )}
-                />
-
-                <Info
-                  label="Location"
-                  value={
-                    selectedComplaint.location ||
-                    "Not provided"
-                  }
-                />
-
-              </div>
-
-              {/* DESCRIPTION */}
-
-              <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
-
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                  Complaint Description
-                </p>
-
-                <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-slate-300">
-                  {selectedComplaint.description}
-                </p>
-
-              </div>
-
-              {/* ADMINISTRATION */}
-
-              <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
+              <section className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
 
                 <h3 className="font-bold">
-                  Administrative Information
+                  Your Complaint
                 </h3>
 
-                <div className="mt-4 space-y-4">
+                <div className="mt-4 grid gap-4 sm:grid-cols-2">
+
+                  <Info
+                    label="Category"
+                    value={
+                      selectedComplaint.category
+                    }
+                  />
+
+                  <Info
+                    label="Priority"
+                    value={
+                      selectedComplaint.priority
+                    }
+                  />
+
+                  <Info
+                    label="Location"
+                    value={
+                      selectedComplaint.location
+                    }
+                  />
+
+                  <Info
+                    label="Last Updated"
+                    value={
+                      selectedComplaint.updatedAt
+                        ? formatDateTime(
+                            selectedComplaint.updatedAt
+                          )
+                        : "Not updated"
+                    }
+                  />
+
+                </div>
+
+                <div className="mt-4 rounded-xl border border-slate-800 bg-slate-950 p-4">
+
+                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    Description
+                  </p>
+
+                  <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-slate-300">
+                    {
+                      selectedComplaint.description
+                    }
+                  </p>
+
+                </div>
+
+              </section>
+
+              {/* ADMINISTRATIVE UPDATE */}
+
+              <section className="rounded-2xl border border-blue-400/20 bg-blue-500/5 p-5">
+
+                <h3 className="text-lg font-bold text-blue-400">
+                  Administrative Update
+                </h3>
+
+                <p className="mt-1 text-sm text-slate-500">
+                  This information can only be changed
+                  by the DSCE administration.
+                </p>
+
+                <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+
+                  <Info
+                    label="Current Status"
+                    value={
+                      selectedComplaint.status
+                    }
+                  />
 
                   <Info
                     label="Assigned Department"
@@ -956,84 +1005,140 @@ export default function FacultyDashboard() {
                     }
                   />
 
+                  <Info
+                    label="Escalated To"
+                    value={
+                      selectedComplaint.escalatedTo ||
+                      "Not escalated"
+                    }
+                  />
+
+                  <Info
+                    label="Escalation Level"
+                    value={String(
+                      selectedComplaint.escalationLevel ||
+                        0
+                    )}
+                  />
+
                 </div>
 
-              </div>
+              </section>
 
               {/* ESCALATION */}
 
               {selectedComplaint.status ===
                 "Escalated" && (
 
-                <div className="rounded-2xl border border-red-400/20 bg-red-500/5 p-5">
+                <section className="rounded-2xl border border-red-400/20 bg-red-500/5 p-5">
 
                   <h3 className="font-bold text-red-400">
                     🚨 Complaint Escalated
                   </h3>
 
-                  <p className="mt-3 text-sm text-slate-400">
-                    This matter has been escalated by
-                    the administration.
+                  <p className="mt-3 text-sm leading-6 text-slate-400">
+                    Your complaint has been escalated
+                    by the administration for further
+                    intervention.
                   </p>
 
                   {selectedComplaint.escalatedTo && (
 
-                    <p className="mt-3 text-sm text-slate-300">
-                      Escalated to:{" "}
-                      <span className="font-semibold">
+                    <div className="mt-4">
+
+                      <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                        Escalated To
+                      </p>
+
+                      <p className="mt-1 font-semibold">
                         {
                           selectedComplaint.escalatedTo
                         }
-                      </span>
-                    </p>
+                      </p>
+
+                    </div>
 
                   )}
 
-                </div>
+                  {selectedComplaint.escalationReason && (
+
+                    <div className="mt-4 rounded-xl border border-slate-800 bg-slate-950 p-4">
+
+                      <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                        Reason
+                      </p>
+
+                      <p className="mt-2 text-sm leading-6 text-slate-300">
+                        {
+                          selectedComplaint.escalationReason
+                        }
+                      </p>
+
+                    </div>
+
+                  )}
+
+                </section>
 
               )}
 
               {/* ADMIN REMARKS */}
 
-              {selectedComplaint.adminRemarks && (
+              <section className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
 
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
+                <h3 className="font-bold">
+                  Administrative Remarks
+                </h3>
 
-                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Administrative Remarks
-                  </p>
+                {selectedComplaint.adminRemarks ? (
 
-                  <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-slate-300">
+                  <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-slate-400">
                     {
                       selectedComplaint.adminRemarks
                     }
                   </p>
 
-                </div>
+                ) : (
 
-              )}
+                  <p className="mt-3 text-sm text-slate-600">
+                    No administrative remarks have been
+                    added yet.
+                  </p>
+
+                )}
+
+              </section>
 
               {/* RESOLUTION */}
 
-              {selectedComplaint.resolutionDetails && (
+              <section className="rounded-2xl border border-green-400/20 bg-green-500/5 p-5">
 
-                <div className="rounded-2xl border border-green-400/20 bg-green-500/5 p-5">
+                <h3 className="font-bold text-green-400">
+                  Resolution
+                </h3>
 
-                  <p className="text-xs font-semibold uppercase tracking-wider text-green-400">
-                    Resolution
-                  </p>
+                {selectedComplaint.resolutionDetails ? (
 
-                  <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-slate-300">
+                  <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-slate-400">
                     {
                       selectedComplaint.resolutionDetails
                     }
                   </p>
 
-                </div>
+                ) : (
 
-              )}
+                  <p className="mt-3 text-sm text-slate-600">
+                    The complaint has not been resolved
+                    yet.
+                  </p>
+
+                )}
+
+              </section>
 
             </div>
+
+            {/* FOOTER */}
 
             <div className="border-t border-slate-800 p-6">
 
@@ -1058,7 +1163,7 @@ export default function FacultyDashboard() {
   );
 }
 
-function DashboardCard({
+function StatCard({
   title,
   value,
   icon,
@@ -1090,6 +1195,28 @@ function DashboardCard({
   );
 }
 
+function MiniInfo({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-xl border border-slate-800 bg-slate-950 p-3">
+
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-600">
+        {label}
+      </p>
+
+      <p className="mt-1 truncate text-xs font-medium text-slate-300">
+        {value}
+      </p>
+
+    </div>
+  );
+}
+
 function Info({
   label,
   value,
@@ -1098,7 +1225,7 @@ function Info({
   value: string;
 }) {
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+    <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
 
       <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
         {label}
