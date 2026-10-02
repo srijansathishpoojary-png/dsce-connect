@@ -26,27 +26,82 @@ export default function LoginPage() {
   const [role, setRole] = useState<Role>("student");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
   const currentRole = roleInfo[role];
 
   function handleLogin() {
-    // Temporary demo login.
-    // Real authentication/database will be added later.
+    setError("");
 
+    /*
+     * Basic validation
+     */
+    if (!email.trim()) {
+      setError("Please enter your college email.");
+      return;
+    }
+
+    if (!password.trim()) {
+      setError("Please enter your password.");
+      return;
+    }
+
+    /*
+     * Create an ID from the email.
+     *
+     * Example:
+     * 1ds24cs001@dsce.edu.in
+     *
+     * becomes:
+     * 1DS24CS001
+     */
+    const userId = email
+      .split("@")[0]
+      .trim()
+      .toUpperCase();
+
+    /*
+     * Store the currently logged-in user.
+     *
+     * The dashboards will use these values.
+     */
+    localStorage.setItem("loggedInRole", role);
+    localStorage.setItem("loggedInEmail", email);
+    localStorage.setItem("loggedInUserId", userId);
+
+    /*
+     * Store role-specific information.
+     */
     if (role === "student") {
+      localStorage.setItem("studentName", userId);
+      localStorage.setItem("studentId", userId);
+
       window.location.assign("/student");
       return;
     }
 
     if (role === "faculty") {
+      localStorage.setItem("facultyName", userId);
+      localStorage.setItem("facultyId", userId);
+
       window.location.assign("/faculty");
       return;
     }
 
     if (role === "admin") {
-      alert("Admin Dashboard will be added next.");
+      localStorage.setItem("adminName", userId);
+      localStorage.setItem("adminId", userId);
+
+      window.location.assign("/admin");
       return;
     }
+  }
+
+  function changeRole(newRole: Role) {
+    setRole(newRole);
+    setError("");
+    setEmail("");
+    setPassword("");
   }
 
   return (
@@ -64,7 +119,10 @@ export default function LoginPage() {
               href="/"
               className="text-2xl font-bold tracking-tight"
             >
-              DSCE<span className="text-blue-400">CONNECT</span>
+              DSCE
+              <span className="text-blue-400">
+                CONNECT
+              </span>
             </a>
 
             <p className="mt-2 text-sm text-slate-500">
@@ -107,7 +165,9 @@ export default function LoginPage() {
 
                 <button
                   type="button"
-                  onClick={() => setRole("student")}
+                  onClick={() =>
+                    changeRole("student")
+                  }
                   className={`rounded-lg px-3 py-2.5 text-sm font-medium transition ${
                     role === "student"
                       ? "bg-blue-500 text-white"
@@ -119,7 +179,9 @@ export default function LoginPage() {
 
                 <button
                   type="button"
-                  onClick={() => setRole("faculty")}
+                  onClick={() =>
+                    changeRole("faculty")
+                  }
                   className={`rounded-lg px-3 py-2.5 text-sm font-medium transition ${
                     role === "faculty"
                       ? "bg-blue-500 text-white"
@@ -131,7 +193,9 @@ export default function LoginPage() {
 
                 <button
                   type="button"
-                  onClick={() => setRole("admin")}
+                  onClick={() =>
+                    changeRole("admin")
+                  }
                   className={`rounded-lg px-3 py-2.5 text-sm font-medium transition ${
                     role === "admin"
                       ? "bg-blue-500 text-white"
@@ -160,7 +224,14 @@ export default function LoginPage() {
                 id="email"
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) =>
+                  setEmail(e.target.value)
+                }
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleLogin();
+                  }
+                }}
                 placeholder={currentRole.placeholder}
                 className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-blue-400"
               />
@@ -184,7 +255,9 @@ export default function LoginPage() {
                   type="button"
                   className="text-xs text-blue-400 hover:text-blue-300"
                   onClick={() =>
-                    alert("Password recovery will be added later.")
+                    alert(
+                      "Password recovery will be added later."
+                    )
                   }
                 >
                   Forgot password?
@@ -196,7 +269,14 @@ export default function LoginPage() {
                 id="password"
                 type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) =>
+                  setPassword(e.target.value)
+                }
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleLogin();
+                  }
+                }}
                 placeholder="Enter your password"
                 className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-blue-400"
               />
@@ -222,6 +302,16 @@ export default function LoginPage() {
 
             </div>
 
+            {/* Error */}
+
+            {error && (
+
+              <div className="mt-5 rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+                {error}
+              </div>
+
+            )}
+
             {/* Sign In */}
 
             <button
@@ -232,7 +322,7 @@ export default function LoginPage() {
               Sign In
             </button>
 
-            {/* Demo Notice */}
+            {/* Development Notice */}
 
             <div className="mt-6 rounded-xl border border-blue-400/10 bg-blue-400/[0.05] p-4">
 
@@ -245,9 +335,9 @@ export default function LoginPage() {
 
                 <br />
 
-                Selecting <strong>Student</strong> opens the Student
-                Dashboard, while selecting <strong>Faculty</strong> opens
-                the Faculty Dashboard.
+                Your selected role and user ID are stored
+                locally so the dashboards can identify the
+                currently logged-in user.
 
               </p>
 
