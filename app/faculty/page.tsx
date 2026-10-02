@@ -138,34 +138,20 @@ export default function FacultyDashboard() {
 
   const [showForm, setShowForm] = useState(false);
 
-  const [facultyName, setFacultyName] =
-    useState("Faculty");
-
-  const [facultyId, setFacultyId] =
-    useState("Faculty");
+  const [facultyName, setFacultyName] = useState("Faculty");
+  const [facultyId, setFacultyId] = useState("Faculty");
 
   const [title, setTitle] = useState("");
-  const [category, setCategory] =
-    useState(categories[0]);
+  const [category, setCategory] = useState(categories[0]);
+  const [description, setDescription] = useState("");
+  const [location, setLocation] = useState("");
+  const [priority, setPriority] = useState("Medium");
 
-  const [description, setDescription] =
-    useState("");
-
-  const [location, setLocation] =
-    useState("");
-
-  const [priority, setPriority] =
-    useState("Medium");
-
-  const [submitMessage, setSubmitMessage] =
-    useState("");
+  const [submitMessage, setSubmitMessage] = useState("");
 
   useEffect(() => {
-    const savedName =
-      localStorage.getItem("facultyName");
-
-    const savedId =
-      localStorage.getItem("facultyId");
+    const savedName = localStorage.getItem("facultyName");
+    const savedId = localStorage.getItem("facultyId");
 
     if (savedName) {
       setFacultyName(savedName);
@@ -179,8 +165,7 @@ export default function FacultyDashboard() {
   }, []);
 
   function loadComplaints() {
-    const stored =
-      localStorage.getItem(STORAGE_KEY);
+    const stored = localStorage.getItem(STORAGE_KEY);
 
     if (!stored) {
       setComplaints([]);
@@ -192,6 +177,8 @@ export default function FacultyDashboard() {
 
       if (Array.isArray(parsed)) {
         setComplaints(parsed);
+      } else {
+        setComplaints([]);
       }
     } catch {
       setComplaints([]);
@@ -199,37 +186,30 @@ export default function FacultyDashboard() {
   }
 
   /*
-   * Faculty can ONLY see complaints submitted
-   * by faculty members.
+   * IMPORTANT:
    *
-   * Student complaints are intentionally excluded.
+   * Faculty members can ONLY see their own complaints.
+   *
+   * Student complaints are never shown here.
+   *
+   * If no faculty ID has been established, we show
+   * nothing rather than accidentally exposing all
+   * faculty complaints.
    */
   const myComplaints = useMemo(() => {
-    const facultyComplaints = complaints.filter(
+    if (!facultyId || facultyId === "Faculty") {
+      return [];
+    }
+
+    return complaints.filter(
       (complaint) =>
-        complaint.complainantType === "faculty"
+        complaint.complainantType === "faculty" &&
+        complaint.complainantId === facultyId
     );
-
-    if (facultyId && facultyId !== "Faculty") {
-      return facultyComplaints.filter(
-        (complaint) =>
-          complaint.complainantId === facultyId
-      );
-    }
-
-    if (facultyName && facultyName !== "Faculty") {
-      return facultyComplaints.filter(
-        (complaint) =>
-          complaint.complainantName === facultyName
-      );
-    }
-
-    return facultyComplaints;
-  }, [complaints, facultyId, facultyName]);
+  }, [complaints, facultyId]);
 
   const pendingCount = myComplaints.filter(
-    (complaint) =>
-      complaint.status === "Pending"
+    (complaint) => complaint.status === "Pending"
   ).length;
 
   const activeCount = myComplaints.filter(
@@ -240,8 +220,7 @@ export default function FacultyDashboard() {
   ).length;
 
   const escalatedCount = myComplaints.filter(
-    (complaint) =>
-      complaint.status === "Escalated"
+    (complaint) => complaint.status === "Escalated"
   ).length;
 
   const resolvedCount = myComplaints.filter(
@@ -252,29 +231,32 @@ export default function FacultyDashboard() {
 
   function submitComplaint() {
     if (!title.trim()) {
-      setSubmitMessage(
-        "Please enter a complaint title."
-      );
+      setSubmitMessage("Please enter a complaint title.");
       return;
     }
 
     if (!description.trim()) {
+      setSubmitMessage("Please describe your complaint.");
+      return;
+    }
+
+    if (!facultyId || facultyId === "Faculty") {
       setSubmitMessage(
-        "Please describe your complaint."
+        "Faculty identity could not be verified. Please log in again."
       );
       return;
     }
+
+    const now = new Date().toISOString();
 
     const newComplaint: Complaint = {
       id: `CMP-${Date.now()}`,
 
       complainantType: "faculty",
 
-      complainantName:
-        facultyName || "Faculty",
+      complainantName: facultyName || "Faculty",
 
-      complainantId:
-        facultyId || "Faculty",
+      complainantId: facultyId,
 
       title: title.trim(),
 
@@ -282,15 +264,13 @@ export default function FacultyDashboard() {
 
       description: description.trim(),
 
-      location:
-        location.trim() || "Not provided",
+      location: location.trim() || "Not provided",
 
       priority,
 
       status: "Pending",
 
-      submittedAt:
-        new Date().toISOString(),
+      submittedAt: now,
 
       assignedDepartment: "",
 
@@ -308,12 +288,10 @@ export default function FacultyDashboard() {
 
       resolutionDetails: "",
 
-      updatedAt:
-        new Date().toISOString(),
+      updatedAt: now,
     };
 
-    const stored =
-      localStorage.getItem(STORAGE_KEY);
+    const stored = localStorage.getItem(STORAGE_KEY);
 
     let existing: Complaint[] = [];
 
@@ -329,10 +307,7 @@ export default function FacultyDashboard() {
       }
     }
 
-    const updated = [
-      newComplaint,
-      ...existing,
-    ];
+    const updated = [newComplaint, ...existing];
 
     localStorage.setItem(
       STORAGE_KEY,
@@ -434,23 +409,23 @@ export default function FacultyDashboard() {
           </h2>
 
           <p className="mt-3 max-w-3xl text-slate-400">
-            Submit workplace complaints, raise concerns
+            Submit workplace complaints, raise concerns,
             and track administrative action taken by
-            DSCE.
+            DSCE administration.
           </p>
 
           <div className="mt-6 flex flex-wrap gap-3">
 
             <button
-              onClick={() =>
-                setShowForm(true)
-              }
+              type="button"
+              onClick={() => setShowForm(true)}
               className="rounded-xl bg-blue-600 px-6 py-3 font-bold transition hover:bg-blue-500"
             >
               + Submit New Complaint
             </button>
 
             <button
+              type="button"
               onClick={refreshComplaints}
               className="rounded-xl border border-slate-700 px-6 py-3 font-semibold transition hover:bg-slate-800"
             >
@@ -533,115 +508,116 @@ export default function FacultyDashboard() {
                 administrative assistance.
               </p>
 
+              <button
+                type="button"
+                onClick={() => setShowForm(true)}
+                className="mt-6 rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold transition hover:bg-blue-500"
+              >
+                Submit Your First Complaint
+              </button>
+
             </div>
 
           ) : (
 
-            myComplaints.map(
-              (complaint) => (
+            myComplaints.map((complaint) => (
 
-                <article
-                  key={complaint.id}
-                  className="rounded-2xl border border-slate-800 bg-slate-900 p-5 transition hover:border-blue-400/30"
-                >
+              <article
+                key={complaint.id}
+                className="rounded-2xl border border-slate-800 bg-slate-900 p-5 transition hover:border-blue-400/30"
+              >
 
-                  <div className="flex flex-col justify-between gap-5 lg:flex-row">
+                <div className="flex flex-col justify-between gap-5 lg:flex-row">
 
-                    <div className="flex-1">
+                  <div className="flex-1">
 
-                      <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-3">
 
-                        <span className="font-mono text-xs font-bold text-blue-400">
-                          {complaint.id}
-                        </span>
+                      <span className="font-mono text-xs font-bold text-blue-400">
+                        {complaint.id}
+                      </span>
 
-                        <span
-                          className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusClass(
-                            complaint.status
-                          )}`}
-                        >
-                          {complaint.status}
-                        </span>
+                      <span
+                        className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusClass(
+                          complaint.status
+                        )}`}
+                      >
+                        {complaint.status}
+                      </span>
 
-                        <span
-                          className={`text-xs font-bold ${priorityClass(
-                            complaint.priority
-                          )}`}
-                        >
-                          {complaint.priority} Priority
-                        </span>
-
-                      </div>
-
-                      <h4 className="mt-3 text-xl font-bold">
-                        {complaint.title}
-                      </h4>
-
-                      <p className="mt-2 text-sm text-slate-500">
-                        {complaint.category} • Submitted{" "}
-                        {formatDate(
-                          complaint.submittedAt
-                        )}
-                      </p>
-
-                      <p className="mt-4 line-clamp-2 text-sm leading-6 text-slate-400">
-                        {complaint.description}
-                      </p>
-
-                      <div className="mt-5 grid gap-3 sm:grid-cols-3">
-
-                        <MiniInfo
-                          label="Department"
-                          value={
-                            complaint.assignedDepartment ||
-                            "Not assigned"
-                          }
-                        />
-
-                        <MiniInfo
-                          label="Authority"
-                          value={
-                            complaint.assignedAuthority ||
-                            "Not assigned"
-                          }
-                        />
-
-                        <MiniInfo
-                          label="Deadline"
-                          value={
-                            complaint.dueDate
-                              ? formatDate(
-                                  complaint.dueDate
-                                )
-                              : "Not set"
-                          }
-                        />
-
-                      </div>
+                      <span
+                        className={`text-xs font-bold ${priorityClass(
+                          complaint.priority
+                        )}`}
+                      >
+                        {complaint.priority} Priority
+                      </span>
 
                     </div>
 
-                    <div className="flex items-center">
+                    <h4 className="mt-3 text-xl font-bold">
+                      {complaint.title}
+                    </h4>
 
-                      <button
-                        onClick={() =>
-                          setSelectedComplaint(
-                            complaint
-                          )
+                    <p className="mt-2 text-sm text-slate-500">
+                      {complaint.category} • Submitted{" "}
+                      {formatDate(complaint.submittedAt)}
+                    </p>
+
+                    <p className="mt-4 line-clamp-2 text-sm leading-6 text-slate-400">
+                      {complaint.description}
+                    </p>
+
+                    <div className="mt-5 grid gap-3 sm:grid-cols-3">
+
+                      <MiniInfo
+                        label="Department"
+                        value={
+                          complaint.assignedDepartment ||
+                          "Not assigned"
                         }
-                        className="w-full rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold transition hover:bg-blue-500 lg:w-auto"
-                      >
-                        View Details
-                      </button>
+                      />
+
+                      <MiniInfo
+                        label="Authority"
+                        value={
+                          complaint.assignedAuthority ||
+                          "Not assigned"
+                        }
+                      />
+
+                      <MiniInfo
+                        label="Deadline"
+                        value={
+                          complaint.dueDate
+                            ? formatDate(complaint.dueDate)
+                            : "Not set"
+                        }
+                      />
 
                     </div>
 
                   </div>
 
-                </article>
+                  <div className="flex items-center">
 
-              )
-            )
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setSelectedComplaint(complaint)
+                      }
+                      className="w-full rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold transition hover:bg-blue-500 lg:w-auto"
+                    >
+                      View Details
+                    </button>
+
+                  </div>
+
+                </div>
+
+              </article>
+
+            ))
 
           )}
 
@@ -670,16 +646,19 @@ export default function FacultyDashboard() {
                 </h2>
 
                 <p className="mt-2 text-sm text-slate-500">
-                  Your complaint will be sent to the
-                  DSCE administration for review.
+                  Your complaint will be sent to DSCE
+                  administration for review and necessary
+                  action.
                 </p>
 
               </div>
 
               <button
-                onClick={() =>
-                  setShowForm(false)
-                }
+                type="button"
+                onClick={() => {
+                  setShowForm(false);
+                  setSubmitMessage("");
+                }}
                 className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-700 text-xl text-slate-400 hover:bg-slate-800"
               >
                 ×
@@ -693,11 +672,15 @@ export default function FacultyDashboard() {
 
               <div>
 
-                <label className="mb-2 block text-sm font-semibold">
+                <label
+                  htmlFor="faculty-title"
+                  className="mb-2 block text-sm font-semibold"
+                >
                   Complaint Title
                 </label>
 
                 <input
+                  id="faculty-title"
                   value={title}
                   onChange={(e) =>
                     setTitle(e.target.value)
@@ -712,30 +695,32 @@ export default function FacultyDashboard() {
 
               <div>
 
-                <label className="mb-2 block text-sm font-semibold">
+                <label
+                  htmlFor="faculty-category"
+                  className="mb-2 block text-sm font-semibold"
+                >
                   Complaint Category
                 </label>
 
                 <select
+                  id="faculty-category"
                   value={category}
                   onChange={(e) =>
-                    setCategory(
-                      e.target.value
-                    )
+                    setCategory(e.target.value)
                   }
                   className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm outline-none focus:border-blue-400"
                 >
 
-                  {categories.map(
-                    (item) => (
-                      <option
-                        key={item}
-                        value={item}
-                      >
-                        {item}
-                      </option>
-                    )
-                  )}
+                  {categories.map((item) => (
+
+                    <option
+                      key={item}
+                      value={item}
+                    >
+                      {item}
+                    </option>
+
+                  ))}
 
                 </select>
 
@@ -745,30 +730,32 @@ export default function FacultyDashboard() {
 
               <div>
 
-                <label className="mb-2 block text-sm font-semibold">
+                <label
+                  htmlFor="faculty-priority"
+                  className="mb-2 block text-sm font-semibold"
+                >
                   Priority
                 </label>
 
                 <select
+                  id="faculty-priority"
                   value={priority}
                   onChange={(e) =>
-                    setPriority(
-                      e.target.value
-                    )
+                    setPriority(e.target.value)
                   }
                   className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm outline-none focus:border-blue-400"
                 >
 
-                  {priorities.map(
-                    (item) => (
-                      <option
-                        key={item}
-                        value={item}
-                      >
-                        {item}
-                      </option>
-                    )
-                  )}
+                  {priorities.map((item) => (
+
+                    <option
+                      key={item}
+                      value={item}
+                    >
+                      {item}
+                    </option>
+
+                  ))}
 
                 </select>
 
@@ -778,16 +765,18 @@ export default function FacultyDashboard() {
 
               <div>
 
-                <label className="mb-2 block text-sm font-semibold">
+                <label
+                  htmlFor="faculty-location"
+                  className="mb-2 block text-sm font-semibold"
+                >
                   Location
                 </label>
 
                 <input
+                  id="faculty-location"
                   value={location}
                   onChange={(e) =>
-                    setLocation(
-                      e.target.value
-                    )
+                    setLocation(e.target.value)
                   }
                   placeholder="Where did the issue occur?"
                   className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm outline-none focus:border-blue-400"
@@ -799,16 +788,18 @@ export default function FacultyDashboard() {
 
               <div>
 
-                <label className="mb-2 block text-sm font-semibold">
+                <label
+                  htmlFor="faculty-description"
+                  className="mb-2 block text-sm font-semibold"
+                >
                   Description
                 </label>
 
                 <textarea
+                  id="faculty-description"
                   value={description}
                   onChange={(e) =>
-                    setDescription(
-                      e.target.value
-                    )
+                    setDescription(e.target.value)
                   }
                   rows={7}
                   placeholder="Explain the issue in detail..."
@@ -826,6 +817,7 @@ export default function FacultyDashboard() {
               )}
 
               <button
+                type="button"
                 onClick={submitComplaint}
                 className="w-full rounded-xl bg-blue-600 px-5 py-3.5 font-bold transition hover:bg-blue-500"
               >
@@ -884,6 +876,7 @@ export default function FacultyDashboard() {
               </div>
 
               <button
+                type="button"
                 onClick={() =>
                   setSelectedComplaint(null)
                 }
@@ -908,23 +901,24 @@ export default function FacultyDashboard() {
 
                   <Info
                     label="Category"
-                    value={
-                      selectedComplaint.category
-                    }
+                    value={selectedComplaint.category}
                   />
 
                   <Info
                     label="Priority"
-                    value={
-                      selectedComplaint.priority
-                    }
+                    value={selectedComplaint.priority}
                   />
 
                   <Info
                     label="Location"
-                    value={
-                      selectedComplaint.location
-                    }
+                    value={selectedComplaint.location}
+                  />
+
+                  <Info
+                    label="Submitted"
+                    value={formatDateTime(
+                      selectedComplaint.submittedAt
+                    )}
                   />
 
                   <Info
@@ -947,9 +941,7 @@ export default function FacultyDashboard() {
                   </p>
 
                   <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-slate-300">
-                    {
-                      selectedComplaint.description
-                    }
+                    {selectedComplaint.description}
                   </p>
 
                 </div>
@@ -960,22 +952,32 @@ export default function FacultyDashboard() {
 
               <section className="rounded-2xl border border-blue-400/20 bg-blue-500/5 p-5">
 
-                <h3 className="text-lg font-bold text-blue-400">
-                  Administrative Update
-                </h3>
+                <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
 
-                <p className="mt-1 text-sm text-slate-500">
-                  This information can only be changed
-                  by the DSCE administration.
-                </p>
+                  <div>
+
+                    <h3 className="text-lg font-bold text-blue-400">
+                      Administrative Update
+                    </h3>
+
+                    <p className="mt-1 text-sm text-slate-500">
+                      This information can only be changed
+                      by DSCE administration.
+                    </p>
+
+                  </div>
+
+                  <span className="rounded-full border border-blue-400/20 bg-blue-500/10 px-3 py-1 text-xs font-semibold text-blue-400">
+                    Read Only
+                  </span>
+
+                </div>
 
                 <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
 
                   <Info
                     label="Current Status"
-                    value={
-                      selectedComplaint.status
-                    }
+                    value={selectedComplaint.status}
                   />
 
                   <Info
@@ -1016,8 +1018,7 @@ export default function FacultyDashboard() {
                   <Info
                     label="Escalation Level"
                     value={String(
-                      selectedComplaint.escalationLevel ||
-                        0
+                      selectedComplaint.escalationLevel || 0
                     )}
                   />
 
@@ -1027,8 +1028,7 @@ export default function FacultyDashboard() {
 
               {/* ESCALATION */}
 
-              {selectedComplaint.status ===
-                "Escalated" && (
+              {selectedComplaint.status === "Escalated" && (
 
                 <section className="rounded-2xl border border-red-400/20 bg-red-500/5 p-5">
 
@@ -1037,8 +1037,8 @@ export default function FacultyDashboard() {
                   </h3>
 
                   <p className="mt-3 text-sm leading-6 text-slate-400">
-                    Your complaint has been escalated
-                    by the administration for further
+                    Your complaint has been escalated by
+                    the administration for further
                     intervention.
                   </p>
 
@@ -1051,9 +1051,7 @@ export default function FacultyDashboard() {
                       </p>
 
                       <p className="mt-1 font-semibold">
-                        {
-                          selectedComplaint.escalatedTo
-                        }
+                        {selectedComplaint.escalatedTo}
                       </p>
 
                     </div>
@@ -1068,10 +1066,8 @@ export default function FacultyDashboard() {
                         Reason
                       </p>
 
-                      <p className="mt-2 text-sm leading-6 text-slate-300">
-                        {
-                          selectedComplaint.escalationReason
-                        }
+                      <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-300">
+                        {selectedComplaint.escalationReason}
                       </p>
 
                     </div>
@@ -1086,16 +1082,22 @@ export default function FacultyDashboard() {
 
               <section className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
 
-                <h3 className="font-bold">
-                  Administrative Remarks
-                </h3>
+                <div className="flex items-center justify-between gap-3">
+
+                  <h3 className="font-bold">
+                    Administrative Remarks
+                  </h3>
+
+                  <span className="rounded-full border border-slate-700 bg-slate-950 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                    Admin Only
+                  </span>
+
+                </div>
 
                 {selectedComplaint.adminRemarks ? (
 
                   <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-slate-400">
-                    {
-                      selectedComplaint.adminRemarks
-                    }
+                    {selectedComplaint.adminRemarks}
                   </p>
 
                 ) : (
@@ -1113,16 +1115,22 @@ export default function FacultyDashboard() {
 
               <section className="rounded-2xl border border-green-400/20 bg-green-500/5 p-5">
 
-                <h3 className="font-bold text-green-400">
-                  Resolution
-                </h3>
+                <div className="flex items-center justify-between gap-3">
+
+                  <h3 className="font-bold text-green-400">
+                    Resolution
+                  </h3>
+
+                  <span className="rounded-full border border-green-400/20 bg-green-500/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-green-400">
+                    Admin Controlled
+                  </span>
+
+                </div>
 
                 {selectedComplaint.resolutionDetails ? (
 
                   <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-slate-400">
-                    {
-                      selectedComplaint.resolutionDetails
-                    }
+                    {selectedComplaint.resolutionDetails}
                   </p>
 
                 ) : (
@@ -1140,9 +1148,15 @@ export default function FacultyDashboard() {
 
             {/* FOOTER */}
 
-            <div className="border-t border-slate-800 p-6">
+            <div className="flex justify-between border-t border-slate-800 p-6">
+
+              <p className="hidden items-center text-xs text-slate-600 sm:flex">
+                Faculty accounts cannot modify administrative
+                actions.
+              </p>
 
               <button
+                type="button"
                 onClick={() =>
                   setSelectedComplaint(null)
                 }
@@ -1231,7 +1245,7 @@ function Info({
         {label}
       </p>
 
-      <p className="mt-2 text-sm font-medium text-slate-200">
+      <p className="mt-2 whitespace-pre-wrap text-sm font-medium text-slate-200">
         {value}
       </p>
 

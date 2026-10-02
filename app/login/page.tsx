@@ -8,100 +8,96 @@ const roleInfo = {
   student: {
     title: "Student Login",
     description: "Access your DSCE Connect student account.",
+    label: "College Email",
     placeholder: "student@dsce.edu.in",
   },
+
   faculty: {
     title: "Faculty / Staff Login",
     description: "Access your DSCE Connect faculty account.",
-    placeholder: "faculty@dsce.edu.in",
+    label: "Faculty ID",
+    placeholder: "Enter your Faculty ID",
   },
+
   admin: {
     title: "Administrator Login",
     description: "Authorized personnel only.",
-    placeholder: "admin@dsce.edu.in",
+    label: "Admin ID",
+    placeholder: "Enter your Admin ID",
   },
 };
 
 export default function LoginPage() {
   const [role, setRole] = useState<Role>("student");
-  const [email, setEmail] = useState("");
+
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
 
   const currentRole = roleInfo[role];
 
-  function handleLogin() {
-    setError("");
+  function changeRole(newRole: Role) {
+    setRole(newRole);
+    setIdentifier("");
+    setPassword("");
+  }
 
-    /*
-     * Basic validation
-     */
-    if (!email.trim()) {
-      setError("Please enter your college email.");
+  function handleLogin() {
+    if (!identifier.trim()) {
+      alert(`Please enter your ${currentRole.label}.`);
       return;
     }
 
     if (!password.trim()) {
-      setError("Please enter your password.");
+      alert("Please enter your password.");
       return;
     }
 
     /*
-     * Create an ID from the email.
-     *
-     * Example:
-     * 1ds24cs001@dsce.edu.in
-     *
-     * becomes:
-     * 1DS24CS001
+     * FACULTY LOGIN
      */
-    const userId = email
-      .split("@")[0]
-      .trim()
-      .toUpperCase();
-
-    /*
-     * Store the currently logged-in user.
-     *
-     * The dashboards will use these values.
-     */
-    localStorage.setItem("loggedInRole", role);
-    localStorage.setItem("loggedInEmail", email);
-    localStorage.setItem("loggedInUserId", userId);
-
-    /*
-     * Store role-specific information.
-     */
-    if (role === "student") {
-      localStorage.setItem("studentName", userId);
-      localStorage.setItem("studentId", userId);
-
-      window.location.assign("/student");
-      return;
-    }
 
     if (role === "faculty") {
-      localStorage.setItem("facultyName", userId);
-      localStorage.setItem("facultyId", userId);
+      localStorage.setItem(
+        "facultyId",
+        identifier.trim()
+      );
+
+      localStorage.setItem(
+        "facultyName",
+        identifier.trim()
+      );
 
       window.location.assign("/faculty");
       return;
     }
 
-    if (role === "admin") {
-      localStorage.setItem("adminName", userId);
-      localStorage.setItem("adminId", userId);
+    /*
+     * STUDENT LOGIN
+     */
 
-      window.location.assign("/admin");
+    if (role === "student") {
+      localStorage.setItem(
+        "studentEmail",
+        identifier.trim()
+      );
+
+      window.location.assign("/student");
       return;
     }
-  }
 
-  function changeRole(newRole: Role) {
-    setRole(newRole);
-    setError("");
-    setEmail("");
-    setPassword("");
+    /*
+     * ADMIN LOGIN
+     */
+
+    if (role === "admin") {
+      localStorage.setItem(
+        "adminId",
+        identifier.trim()
+      );
+
+      alert("Admin Dashboard will be added next.");
+      return;
+    }
   }
 
   return (
@@ -111,7 +107,7 @@ export default function LoginPage() {
 
         <div className="w-full max-w-md">
 
-          {/* Logo */}
+          {/* LOGO */}
 
           <div className="mb-8 text-center">
 
@@ -131,11 +127,11 @@ export default function LoginPage() {
 
           </div>
 
-          {/* Login Card */}
+          {/* LOGIN CARD */}
 
           <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-8 shadow-2xl">
 
-            {/* Heading */}
+            {/* HEADING */}
 
             <div className="mb-8">
 
@@ -153,7 +149,7 @@ export default function LoginPage() {
 
             </div>
 
-            {/* Role Selector */}
+            {/* ROLE SELECTOR */}
 
             <div className="mb-8">
 
@@ -209,36 +205,37 @@ export default function LoginPage() {
 
             </div>
 
-            {/* Email */}
+            {/* IDENTIFIER */}
 
             <div>
 
               <label
-                htmlFor="email"
+                htmlFor="identifier"
                 className="block text-sm font-medium"
               >
-                College Email
+                {currentRole.label}
               </label>
 
               <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) =>
-                  setEmail(e.target.value)
+                id="identifier"
+                type={
+                  role === "student"
+                    ? "email"
+                    : "text"
                 }
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    handleLogin();
-                  }
-                }}
-                placeholder={currentRole.placeholder}
+                value={identifier}
+                onChange={(e) =>
+                  setIdentifier(e.target.value)
+                }
+                placeholder={
+                  currentRole.placeholder
+                }
                 className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-blue-400"
               />
 
             </div>
 
-            {/* Password */}
+            {/* PASSWORD */}
 
             <div className="mt-6">
 
@@ -272,18 +269,13 @@ export default function LoginPage() {
                 onChange={(e) =>
                   setPassword(e.target.value)
                 }
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    handleLogin();
-                  }
-                }}
                 placeholder="Enter your password"
                 className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-blue-400"
               />
 
             </div>
 
-            {/* Remember Me */}
+            {/* REMEMBER ME */}
 
             <div className="mt-5 flex items-center gap-2">
 
@@ -302,17 +294,7 @@ export default function LoginPage() {
 
             </div>
 
-            {/* Error */}
-
-            {error && (
-
-              <div className="mt-5 rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">
-                {error}
-              </div>
-
-            )}
-
-            {/* Sign In */}
+            {/* SIGN IN */}
 
             <button
               type="button"
@@ -322,7 +304,7 @@ export default function LoginPage() {
               Sign In
             </button>
 
-            {/* Development Notice */}
+            {/* DEVELOPMENT NOTICE */}
 
             <div className="mt-6 rounded-xl border border-blue-400/10 bg-blue-400/[0.05] p-4">
 
@@ -335,9 +317,17 @@ export default function LoginPage() {
 
                 <br />
 
-                Your selected role and user ID are stored
-                locally so the dashboards can identify the
-                currently logged-in user.
+                Student login opens the Student Dashboard.
+
+                <br />
+
+                Faculty login uses the entered Faculty ID
+                and opens the Faculty Dashboard.
+
+                <br />
+
+                Admin login will open the Admin Dashboard
+                once it is implemented.
 
               </p>
 
@@ -345,7 +335,7 @@ export default function LoginPage() {
 
           </div>
 
-          {/* Back */}
+          {/* BACK */}
 
           <div className="mt-6 text-center">
 
