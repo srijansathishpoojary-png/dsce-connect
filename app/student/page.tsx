@@ -1,63 +1,36 @@
 "use client";
 
-import {
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { useEffect, useMemo, useState } from "react";
+
+import type {
+  Complaint,
+  ComplaintStatus,
+  Priority,
+} from "../lib/complaints";
 
 import {
-  getComplaints,
   addComplaint,
+  generateTicketId,
+  getComplaintsByUser,
 } from "../lib/complaintStore";
-
-type Complaint = {
-  id: string;
-  complainantType:
-    | "student"
-    | "faculty";
-
-  complainantName: string;
-  complainantId: string;
-
-  title: string;
-  category: string;
-  description: string;
-  location: string;
-  priority: string;
-
-  status: string;
-  submittedAt: string;
-
-  assignedDepartment?: string;
-  assignedAuthority?: string;
-  dueDate?: string;
-
-  escalationLevel?: number;
-  escalatedTo?: string;
-  escalationReason?: string;
-
-  adminRemarks?: string;
-  resolutionDetails?: string;
-
-  updatedAt?: string;
-};
 
 const categories = [
   "Academic",
-  "Faculty",
-  "Infrastructure",
   "Examination",
-  "Fees / Accounts",
+  "Infrastructure",
+  "Faculty",
+  "Administration",
   "Hostel",
   "Transport",
-  "IT / Technical",
   "Library",
-  "Harassment",
+  "IT / Technical",
+  "Fees / Finance",
+  "Scholarship",
+  "Attendance",
   "Other",
 ];
 
-const priorities = [
+const priorities: Priority[] = [
   "Low",
   "Medium",
   "High",
@@ -65,58 +38,44 @@ const priorities = [
 ];
 
 function formatDate(date?: string) {
-  if (!date) return "Not set";
+  if (!date) {
+    return "Not set";
+  }
 
   const parsed = new Date(date);
 
-  if (
-    Number.isNaN(
-      parsed.getTime()
-    )
-  ) {
+  if (Number.isNaN(parsed.getTime())) {
     return date;
   }
 
-  return parsed.toLocaleDateString(
-    "en-IN",
-    {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    }
-  );
+  return parsed.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
 }
 
-function formatDateTime(
-  date?: string
-) {
-  if (!date) return "Not available";
+function formatDateTime(date?: string) {
+  if (!date) {
+    return "Not available";
+  }
 
   const parsed = new Date(date);
 
-  if (
-    Number.isNaN(
-      parsed.getTime()
-    )
-  ) {
+  if (Number.isNaN(parsed.getTime())) {
     return date;
   }
 
-  return parsed.toLocaleString(
-    "en-IN",
-    {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    }
-  );
+  return parsed.toLocaleString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
-function statusClass(
-  status: string
-) {
+function statusClass(status: ComplaintStatus | string) {
   switch (status) {
     case "Pending":
       return "border-yellow-400/30 bg-yellow-500/10 text-yellow-400";
@@ -147,9 +106,7 @@ function statusClass(
   }
 }
 
-function priorityClass(
-  priority: string
-) {
+function priorityClass(priority: Priority | string) {
   switch (priority) {
     case "Urgent":
       return "text-red-400";
@@ -166,24 +123,20 @@ function priorityClass(
 }
 
 export default function StudentDashboard() {
-  const [complaints, setComplaints] =
-    useState<Complaint[]>([]);
-
-  const [
-    selectedComplaint,
-    setSelectedComplaint,
-  ] = useState<Complaint | null>(
-    null
-  );
-
-  const [showForm, setShowForm] =
-    useState(false);
-
   const [studentName, setStudentName] =
     useState("Student");
 
   const [studentId, setStudentId] =
     useState("Student");
+
+  const [complaints, setComplaints] =
+    useState<Complaint[]>([]);
+
+  const [selectedComplaint, setSelectedComplaint] =
+    useState<Complaint | null>(null);
+
+  const [showForm, setShowForm] =
+    useState(false);
 
   const [title, setTitle] =
     useState("");
@@ -198,25 +151,20 @@ export default function StudentDashboard() {
     useState("");
 
   const [priority, setPriority] =
-    useState("Medium");
+    useState<Priority>("Medium");
 
   const [submitMessage, setSubmitMessage] =
     useState("");
 
   /*
-    Load student information and
-    complaints when dashboard opens.
+    Load student information and complaints.
   */
   useEffect(() => {
     const savedName =
-      localStorage.getItem(
-        "studentName"
-      );
+      localStorage.getItem("studentName");
 
     const savedId =
-      localStorage.getItem(
-        "studentId"
-      );
+      localStorage.getItem("studentId");
 
     if (savedName) {
       setStudentName(savedName);
@@ -226,100 +174,47 @@ export default function StudentDashboard() {
       setStudentId(savedId);
     }
 
-    loadComplaints();
+    if (savedId) {
+      const studentComplaints =
+        getComplaintsByUser(
+          "student",
+          savedId
+        );
+
+      setComplaints(
+        studentComplaints
+      );
+    }
   }, []);
 
   /*
-    Load complaints from Supabase.
+    Reload complaints belonging to
+    the currently logged-in student.
   */
-  async function loadComplaints() {
-    const data =
-      await getComplaints();
+  function loadComplaints() {
+    const currentStudentId =
+      localStorage.getItem("studentId");
 
-    setComplaints(data);
+    if (!currentStudentId) {
+      setComplaints([]);
+      return;
+    }
+
+    const studentComplaints =
+      getComplaintsByUser(
+        "student",
+        currentStudentId
+      );
+
+    setComplaints(
+      studentComplaints
+    );
   }
 
   /*
-    Only show student complaints
-    belonging to the logged-in student.
+    Submit a new complaint.
   */
-  const myComplaints =
-    useMemo(() => {
-      const studentComplaints =
-        complaints.filter(
-          (complaint) =>
-            complaint.complainantType ===
-            "student"
-        );
-
-      if (
-        studentId &&
-        studentId !== "Student"
-      ) {
-        return studentComplaints.filter(
-          (complaint) =>
-            complaint.complainantId ===
-            studentId
-        );
-      }
-
-      if (
-        studentName &&
-        studentName !== "Student"
-      ) {
-        return studentComplaints.filter(
-          (complaint) =>
-            complaint.complainantName ===
-            studentName
-        );
-      }
-
-      return studentComplaints;
-    }, [
-      complaints,
-      studentId,
-      studentName,
-    ]);
-
-  const pendingCount =
-    myComplaints.filter(
-      (complaint) =>
-        complaint.status ===
-        "Pending"
-    ).length;
-
-  const activeCount =
-    myComplaints.filter(
-      (complaint) =>
-        complaint.status ===
-          "Under Review" ||
-        complaint.status ===
-          "Assigned" ||
-        complaint.status ===
-          "In Progress"
-    ).length;
-
-  const escalatedCount =
-    myComplaints.filter(
-      (complaint) =>
-        complaint.status ===
-        "Escalated"
-    ).length;
-
-  const resolvedCount =
-    myComplaints.filter(
-      (complaint) =>
-        complaint.status ===
-          "Resolved" ||
-        complaint.status ===
-          "Closed"
-    ).length;
-
-  /*
-    Submit a new complaint
-    directly to Supabase.
-  */
-  async function submitComplaint() {
+  function submitComplaint() {
     if (!title.trim()) {
       setSubmitMessage(
         "Please enter a complaint title."
@@ -336,20 +231,32 @@ export default function StudentDashboard() {
       return;
     }
 
+    const currentStudentName =
+      localStorage.getItem(
+        "studentName"
+      ) || studentName || "Student";
+
+    const currentStudentId =
+      localStorage.getItem(
+        "studentId"
+      ) || studentId || "Student";
+
     const now =
       new Date().toISOString();
 
     const newComplaint: Complaint = {
-      id: `STU-${Date.now()}`,
+      id: generateTicketId(
+        "student"
+      ),
 
       complainantType:
         "student",
 
       complainantName:
-        studentName || "Student",
+        currentStudentName,
 
       complainantId:
-        studentId || "Student",
+        currentStudentId,
 
       title:
         title.trim(),
@@ -368,14 +275,14 @@ export default function StudentDashboard() {
       status:
         "Pending",
 
-      submittedAt:
-        now,
-
       assignedDepartment:
         "",
 
       assignedAuthority:
         "",
+
+      submittedAt:
+        now,
 
       dueDate:
         "",
@@ -384,6 +291,9 @@ export default function StudentDashboard() {
         0,
 
       escalatedTo:
+        "",
+
+      escalatedAt:
         "",
 
       escalationReason:
@@ -395,28 +305,20 @@ export default function StudentDashboard() {
       resolutionDetails:
         "",
 
-      updatedAt:
-        now,
+      resolvedAt:
+        "",
     };
 
-    setSubmitMessage(
-      "Submitting complaint..."
+    addComplaint(
+      newComplaint
     );
 
-    const success =
-      await addComplaint(
-        newComplaint
-      );
-
-    if (!success) {
-      setSubmitMessage(
-        "Unable to submit complaint. Please try again."
-      );
-
-      return;
-    }
-
-    await loadComplaints();
+    setComplaints(
+      (previous) => [
+        newComplaint,
+        ...previous,
+      ]
+    );
 
     setTitle("");
     setCategory(
@@ -433,12 +335,61 @@ export default function StudentDashboard() {
     setTimeout(() => {
       setSubmitMessage("");
       setShowForm(false);
-    }, 1800);
+    }, 1500);
   }
 
-  async function refreshComplaints() {
-    await loadComplaints();
-  }
+  /*
+    Statistics.
+  */
+  const pendingCount =
+    useMemo(
+      () =>
+        complaints.filter(
+          (complaint) =>
+            complaint.status ===
+            "Pending"
+        ).length,
+      [complaints]
+    );
+
+  const activeCount =
+    useMemo(
+      () =>
+        complaints.filter(
+          (complaint) =>
+            complaint.status ===
+              "Under Review" ||
+            complaint.status ===
+              "Assigned" ||
+            complaint.status ===
+              "In Progress"
+        ).length,
+      [complaints]
+    );
+
+  const escalatedCount =
+    useMemo(
+      () =>
+        complaints.filter(
+          (complaint) =>
+            complaint.status ===
+            "Escalated"
+        ).length,
+      [complaints]
+    );
+
+  const resolvedCount =
+    useMemo(
+      () =>
+        complaints.filter(
+          (complaint) =>
+            complaint.status ===
+              "Resolved" ||
+            complaint.status ===
+              "Closed"
+        ).length,
+      [complaints]
+    );
 
   return (
     <main className="min-h-screen bg-slate-950 text-white">
@@ -513,20 +464,30 @@ export default function StudentDashboard() {
           </h2>
 
           <p className="mt-3 max-w-3xl text-slate-400">
-            Submit complaints, track
-            their progress and view
-            administrative actions taken
+            Submit complaints, report issues and
+            track the administrative action taken
             by DSCE.
           </p>
 
-          <button
-            onClick={() =>
-              setShowForm(true)
-            }
-            className="mt-6 rounded-xl bg-blue-600 px-6 py-3 font-bold transition hover:bg-blue-500"
-          >
-            + Submit New Complaint
-          </button>
+          <div className="mt-6 flex flex-wrap gap-3">
+
+            <button
+              onClick={() =>
+                setShowForm(true)
+              }
+              className="rounded-xl bg-blue-600 px-6 py-3 font-bold transition hover:bg-blue-500"
+            >
+              + Submit New Complaint
+            </button>
+
+            <button
+              onClick={loadComplaints}
+              className="rounded-xl border border-slate-700 px-6 py-3 font-semibold transition hover:bg-slate-800"
+            >
+              ↻ Refresh
+            </button>
+
+          </div>
 
         </section>
 
@@ -535,81 +496,55 @@ export default function StudentDashboard() {
         <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
 
           <StatCard
-            title="Total Complaints"
-            value={
-              myComplaints.length
-            }
+            title="Total"
+            value={complaints.length}
             icon="📋"
           />
 
           <StatCard
             title="Pending"
-            value={
-              pendingCount
-            }
+            value={pendingCount}
             icon="⏳"
           />
 
           <StatCard
             title="Active"
-            value={
-              activeCount
-            }
+            value={activeCount}
             icon="🔄"
           />
 
           <StatCard
             title="Escalated"
-            value={
-              escalatedCount
-            }
+            value={escalatedCount}
             icon="🚨"
           />
 
           <StatCard
-            title="Resolved / Closed"
-            value={
-              resolvedCount
-            }
+            title="Resolved"
+            value={resolvedCount}
             icon="✅"
           />
 
         </section>
 
-        {/* COMPLAINTS HEADER */}
+        {/* COMPLAINTS */}
 
-        <div className="mt-8 flex items-center justify-between">
+        <div className="mt-8">
 
-          <div>
+          <h3 className="text-2xl font-bold">
+            My Complaints
+          </h3>
 
-            <h3 className="text-2xl font-bold">
-              My Complaints
-            </h3>
-
-            <p className="mt-1 text-sm text-slate-500">
-              Track every complaint
-              submitted by you.
-            </p>
-
-          </div>
-
-          <button
-            onClick={
-              refreshComplaints
-            }
-            className="rounded-xl border border-slate-700 px-4 py-2 text-sm font-semibold transition hover:bg-slate-800"
-          >
-            ↻ Refresh
-          </button>
+          <p className="mt-1 text-sm text-slate-500">
+            Only complaints submitted using your
+            student account are displayed here.
+          </p>
 
         </div>
 
-        {/* COMPLAINT LIST */}
-
         <section className="mt-5 space-y-4">
 
-          {myComplaints.length ===
-          0 ? (
+          {complaints.length === 0 ? (
 
             <div className="rounded-3xl border border-dashed border-slate-700 bg-slate-900 p-12 text-center">
 
@@ -622,16 +557,24 @@ export default function StudentDashboard() {
               </h3>
 
               <p className="mt-2 text-sm text-slate-500">
-                Submit your first
-                complaint using the
-                button above.
+                Submit a complaint whenever you
+                need administrative assistance.
               </p>
+
+              <button
+                onClick={() =>
+                  setShowForm(true)
+                }
+                className="mt-6 rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold transition hover:bg-blue-500"
+              >
+                Submit Your First Complaint
+              </button>
 
             </div>
 
           ) : (
 
-            myComplaints.map(
+            complaints.map(
               (complaint) => (
 
                 <article
@@ -654,9 +597,7 @@ export default function StudentDashboard() {
                             complaint.status
                           )}`}
                         >
-                          {
-                            complaint.status
-                          }
+                          {complaint.status}
                         </span>
 
                         <span
@@ -664,10 +605,7 @@ export default function StudentDashboard() {
                             complaint.priority
                           )}`}
                         >
-                          {
-                            complaint.priority
-                          }{" "}
-                          Priority
+                          {complaint.priority} Priority
                         </span>
 
                       </div>
@@ -677,19 +615,16 @@ export default function StudentDashboard() {
                       </h4>
 
                       <p className="mt-2 text-sm text-slate-500">
-                        {
-                          complaint.category
-                        }{" "}
-                        • Submitted{" "}
+                        {complaint.category}
+                        {" • "}
+                        Submitted{" "}
                         {formatDate(
                           complaint.submittedAt
                         )}
                       </p>
 
                       <p className="mt-4 line-clamp-2 text-sm leading-6 text-slate-400">
-                        {
-                          complaint.description
-                        }
+                        {complaint.description}
                       </p>
 
                       <div className="mt-5 grid gap-3 sm:grid-cols-3">
@@ -766,7 +701,7 @@ export default function StudentDashboard() {
               <div>
 
                 <p className="text-sm font-semibold uppercase tracking-wider text-blue-400">
-                  New Complaint
+                  New Student Complaint
                 </p>
 
                 <h2 className="mt-2 text-2xl font-bold">
@@ -774,17 +709,17 @@ export default function StudentDashboard() {
                 </h2>
 
                 <p className="mt-2 text-sm text-slate-500">
-                  Your complaint will
-                  be reviewed by the
-                  administration.
+                  Your complaint will be sent to
+                  the DSCE administration for review.
                 </p>
 
               </div>
 
               <button
-                onClick={() =>
-                  setShowForm(false)
-                }
+                onClick={() => {
+                  setShowForm(false);
+                  setSubmitMessage("");
+                }}
                 className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-700 text-xl text-slate-400 hover:bg-slate-800"
               >
                 ×
@@ -815,71 +750,69 @@ export default function StudentDashboard() {
 
               </div>
 
-              {/* CATEGORY / PRIORITY */}
+              {/* CATEGORY */}
 
-              <div className="grid gap-5 sm:grid-cols-2">
+              <div>
 
-                <div>
+                <label className="mb-2 block text-sm font-semibold">
+                  Complaint Category
+                </label>
 
-                  <label className="mb-2 block text-sm font-semibold">
-                    Category
-                  </label>
+                <select
+                  value={category}
+                  onChange={(e) =>
+                    setCategory(
+                      e.target.value
+                    )
+                  }
+                  className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm outline-none focus:border-blue-400"
+                >
 
-                  <select
-                    value={category}
-                    onChange={(e) =>
-                      setCategory(
-                        e.target.value
-                      )
-                    }
-                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm outline-none focus:border-blue-400"
-                  >
+                  {categories.map(
+                    (item) => (
+                      <option
+                        key={item}
+                        value={item}
+                      >
+                        {item}
+                      </option>
+                    )
+                  )}
 
-                    {categories.map(
-                      (item) => (
-                        <option
-                          key={item}
-                          value={item}
-                        >
-                          {item}
-                        </option>
-                      )
-                    )}
+                </select>
 
-                  </select>
+              </div>
 
-                </div>
+              {/* PRIORITY */}
 
-                <div>
+              <div>
 
-                  <label className="mb-2 block text-sm font-semibold">
-                    Priority
-                  </label>
+                <label className="mb-2 block text-sm font-semibold">
+                  Priority
+                </label>
 
-                  <select
-                    value={priority}
-                    onChange={(e) =>
-                      setPriority(
-                        e.target.value
-                      )
-                    }
-                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm outline-none focus:border-blue-400"
-                  >
+                <select
+                  value={priority}
+                  onChange={(e) =>
+                    setPriority(
+                      e.target.value as Priority
+                    )
+                  }
+                  className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm outline-none focus:border-blue-400"
+                >
 
-                    {priorities.map(
-                      (item) => (
-                        <option
-                          key={item}
-                          value={item}
-                        >
-                          {item}
-                        </option>
-                      )
-                    )}
+                  {priorities.map(
+                    (item) => (
+                      <option
+                        key={item}
+                        value={item}
+                      >
+                        {item}
+                      </option>
+                    )
+                  )}
 
-                  </select>
-
-                </div>
+                </select>
 
               </div>
 
@@ -919,12 +852,14 @@ export default function StudentDashboard() {
                       e.target.value
                     )
                   }
-                  rows={6}
+                  rows={7}
                   placeholder="Explain the issue in detail..."
                   className="w-full resize-none rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm leading-6 outline-none focus:border-blue-400"
                 />
 
               </div>
+
+              {/* MESSAGE */}
 
               {submitMessage && (
 
@@ -934,10 +869,10 @@ export default function StudentDashboard() {
 
               )}
 
+              {/* SUBMIT */}
+
               <button
-                onClick={
-                  submitComplaint
-                }
+                onClick={submitComplaint}
                 className="w-full rounded-xl bg-blue-600 px-5 py-3.5 font-bold transition hover:bg-blue-500"
               >
                 Submit Complaint
@@ -951,7 +886,7 @@ export default function StudentDashboard() {
 
       )}
 
-      {/* COMPLAINT DETAILS MODAL */}
+      {/* DETAILS MODAL */}
 
       {selectedComplaint && (
 
@@ -968,9 +903,7 @@ export default function StudentDashboard() {
                 <div className="flex flex-wrap items-center gap-3">
 
                   <span className="font-mono text-sm font-bold text-blue-400">
-                    {
-                      selectedComplaint.id
-                    }
+                    {selectedComplaint.id}
                   </span>
 
                   <span
@@ -978,17 +911,21 @@ export default function StudentDashboard() {
                       selectedComplaint.status
                     )}`}
                   >
-                    {
-                      selectedComplaint.status
-                    }
+                    {selectedComplaint.status}
+                  </span>
+
+                  <span
+                    className={`text-xs font-bold ${priorityClass(
+                      selectedComplaint.priority
+                    )}`}
+                  >
+                    {selectedComplaint.priority}
                   </span>
 
                 </div>
 
                 <h2 className="mt-3 text-2xl font-bold">
-                  {
-                    selectedComplaint.title
-                  }
+                  {selectedComplaint.title}
                 </h2>
 
                 <p className="mt-2 text-sm text-slate-500">
@@ -1002,9 +939,7 @@ export default function StudentDashboard() {
 
               <button
                 onClick={() =>
-                  setSelectedComplaint(
-                    null
-                  )
+                  setSelectedComplaint(null)
                 }
                 className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-700 text-xl text-slate-400 hover:bg-slate-800"
               >
@@ -1047,13 +982,11 @@ export default function StudentDashboard() {
                   />
 
                   <Info
-                    label="Last Updated"
+                    label="Submitted"
                     value={
-                      selectedComplaint.updatedAt
-                        ? formatDateTime(
-                            selectedComplaint.updatedAt
-                          )
-                        : "Not updated"
+                      formatDateTime(
+                        selectedComplaint.submittedAt
+                      )
                     }
                   />
 
@@ -1075,7 +1008,7 @@ export default function StudentDashboard() {
 
               </section>
 
-              {/* ADMIN UPDATE */}
+              {/* ADMINISTRATIVE UPDATE */}
 
               <section className="rounded-2xl border border-blue-400/20 bg-blue-500/5 p-5">
 
@@ -1084,9 +1017,8 @@ export default function StudentDashboard() {
                 </h3>
 
                 <p className="mt-1 text-sm text-slate-500">
-                  This information is
-                  updated by the DSCE
-                  administration.
+                  This information can only be changed
+                  by the DSCE administration.
                 </p>
 
                 <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -1157,10 +1089,9 @@ export default function StudentDashboard() {
                   </h3>
 
                   <p className="mt-3 text-sm leading-6 text-slate-400">
-                    Your complaint has
-                    been escalated by the
-                    administration for
-                    further intervention.
+                    Your complaint has been escalated
+                    by the administration for further
+                    intervention.
                   </p>
 
                   {selectedComplaint.escalatedTo && (
@@ -1175,6 +1106,24 @@ export default function StudentDashboard() {
                         {
                           selectedComplaint.escalatedTo
                         }
+                      </p>
+
+                    </div>
+
+                  )}
+
+                  {selectedComplaint.escalatedAt && (
+
+                    <div className="mt-4">
+
+                      <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                        Escalated On
+                      </p>
+
+                      <p className="mt-1 text-sm text-slate-300">
+                        {formatDateTime(
+                          selectedComplaint.escalatedAt
+                        )}
                       </p>
 
                     </div>
@@ -1222,9 +1171,8 @@ export default function StudentDashboard() {
                 ) : (
 
                   <p className="mt-3 text-sm text-slate-600">
-                    No administrative
-                    remarks have been
-                    added yet.
+                    No administrative remarks have
+                    been added yet.
                   </p>
 
                 )}
@@ -1241,17 +1189,31 @@ export default function StudentDashboard() {
 
                 {selectedComplaint.resolutionDetails ? (
 
-                  <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-slate-400">
-                    {
-                      selectedComplaint.resolutionDetails
-                    }
-                  </p>
+                  <>
+
+                    <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-slate-400">
+                      {
+                        selectedComplaint.resolutionDetails
+                      }
+                    </p>
+
+                    {selectedComplaint.resolvedAt && (
+
+                      <p className="mt-4 text-xs text-slate-500">
+                        Resolved on{" "}
+                        {formatDateTime(
+                          selectedComplaint.resolvedAt
+                        )}
+                      </p>
+
+                    )}
+
+                  </>
 
                 ) : (
 
                   <p className="mt-3 text-sm text-slate-600">
-                    The complaint has
-                    not been resolved
+                    The complaint has not been resolved
                     yet.
                   </p>
 
@@ -1267,9 +1229,7 @@ export default function StudentDashboard() {
 
               <button
                 onClick={() =>
-                  setSelectedComplaint(
-                    null
-                  )
+                  setSelectedComplaint(null)
                 }
                 className="rounded-xl border border-slate-700 px-6 py-3 font-semibold transition hover:bg-slate-800"
               >
@@ -1288,6 +1248,9 @@ export default function StudentDashboard() {
   );
 }
 
+/*
+  Statistics card.
+*/
 function StatCard({
   title,
   value,
@@ -1320,6 +1283,9 @@ function StatCard({
   );
 }
 
+/*
+  Small complaint information box.
+*/
 function MiniInfo({
   label,
   value,
@@ -1342,6 +1308,9 @@ function MiniInfo({
   );
 }
 
+/*
+  Information box.
+*/
 function Info({
   label,
   value,
