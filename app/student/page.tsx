@@ -75,7 +75,9 @@ function formatDateTime(date?: string) {
   });
 }
 
-function statusClass(status: ComplaintStatus | string) {
+function statusClass(
+  status: ComplaintStatus | string
+) {
   switch (status) {
     case "Pending":
       return "border-yellow-400/30 bg-yellow-500/10 text-yellow-400";
@@ -106,7 +108,9 @@ function statusClass(status: ComplaintStatus | string) {
   }
 }
 
-function priorityClass(priority: Priority | string) {
+function priorityClass(
+  priority: Priority | string
+) {
   switch (priority) {
     case "Urgent":
       return "text-red-400";
@@ -157,7 +161,8 @@ export default function StudentDashboard() {
     useState("");
 
   /*
-    Load student information and complaints.
+    Load student information and complaints
+    from Supabase.
   */
   useEffect(() => {
     const savedName =
@@ -172,18 +177,10 @@ export default function StudentDashboard() {
 
     if (savedId) {
       setStudentId(savedId);
-    }
 
-    if (savedId) {
-      const studentComplaints =
-        getComplaintsByUser(
-          "student",
-          savedId
-        );
-
-      setComplaints(
-        studentComplaints
-      );
+      void loadComplaints(savedId);
+    } else {
+      setComplaints([]);
     }
   }, []);
 
@@ -191,30 +188,31 @@ export default function StudentDashboard() {
     Reload complaints belonging to
     the currently logged-in student.
   */
-  function loadComplaints() {
-    const currentStudentId =
+  async function loadComplaints(
+    currentStudentId?: string
+  ) {
+    const id =
+      currentStudentId ||
       localStorage.getItem("studentId");
 
-    if (!currentStudentId) {
+    if (!id) {
       setComplaints([]);
       return;
     }
 
     const studentComplaints =
-      getComplaintsByUser(
+      await getComplaintsByUser(
         "student",
-        currentStudentId
+        id
       );
 
-    setComplaints(
-      studentComplaints
-    );
+    setComplaints(studentComplaints);
   }
 
   /*
-    Submit a new complaint.
+    Submit a new complaint to Supabase.
   */
-  function submitComplaint() {
+  async function submitComplaint() {
     if (!title.trim()) {
       setSubmitMessage(
         "Please enter a complaint title."
@@ -234,12 +232,16 @@ export default function StudentDashboard() {
     const currentStudentName =
       localStorage.getItem(
         "studentName"
-      ) || studentName || "Student";
+      ) ||
+      studentName ||
+      "Student";
 
     const currentStudentId =
       localStorage.getItem(
         "studentId"
-      ) || studentId || "Student";
+      ) ||
+      studentId ||
+      "Student";
 
     const now =
       new Date().toISOString();
@@ -309,24 +311,43 @@ export default function StudentDashboard() {
         "",
     };
 
-    addComplaint(
-      newComplaint
+    setSubmitMessage(
+      "Submitting complaint..."
     );
+
+    const savedComplaint =
+      await addComplaint(
+        newComplaint
+      );
+
+    if (!savedComplaint) {
+      setSubmitMessage(
+        "Unable to submit complaint. Please try again."
+      );
+
+      return;
+    }
 
     setComplaints(
       (previous) => [
-        newComplaint,
+        savedComplaint,
         ...previous,
       ]
     );
 
     setTitle("");
+
     setCategory(
       categories[0]
     );
+
     setDescription("");
+
     setLocation("");
-    setPriority("Medium");
+
+    setPriority(
+      "Medium"
+    );
 
     setSubmitMessage(
       "Complaint submitted successfully."
@@ -481,7 +502,9 @@ export default function StudentDashboard() {
             </button>
 
             <button
-              onClick={loadComplaints}
+              onClick={() => {
+                void loadComplaints();
+              }}
               className="rounded-xl border border-slate-700 px-6 py-3 font-semibold transition hover:bg-slate-800"
             >
               ↻ Refresh
@@ -872,7 +895,9 @@ export default function StudentDashboard() {
               {/* SUBMIT */}
 
               <button
-                onClick={submitComplaint}
+                onClick={() => {
+                  void submitComplaint();
+                }}
                 className="w-full rounded-xl bg-blue-600 px-5 py-3.5 font-bold transition hover:bg-blue-500"
               >
                 Submit Complaint
@@ -1190,7 +1215,6 @@ export default function StudentDashboard() {
                 {selectedComplaint.resolutionDetails ? (
 
                   <>
-
                     <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-slate-400">
                       {
                         selectedComplaint.resolutionDetails
