@@ -6,6 +6,79 @@ import {
   UserType,
 } from "./complaints";
 
+/*
+  Convert a Supabase database row
+  into the application's Complaint type.
+*/
+function mapComplaint(row: any): Complaint {
+  return {
+    id: row.id,
+
+    complainantType:
+      row.complainant_type,
+
+    complainantName:
+      row.complainant_name,
+
+    complainantId:
+      row.complainant_id,
+
+    title:
+      row.title,
+
+    category:
+      row.category,
+
+    description:
+      row.description,
+
+    location:
+      row.location,
+
+    priority:
+      row.priority,
+
+    status:
+      row.status,
+
+    assignedDepartment:
+      row.assigned_department || "",
+
+    assignedAuthority:
+      row.assigned_authority || "",
+
+    submittedAt:
+      row.submitted_at,
+
+    dueDate:
+      row.due_date || "",
+
+    escalationLevel:
+      row.escalation_level ?? 0,
+
+    escalatedTo:
+      row.escalated_to || "",
+
+    escalatedAt:
+      row.escalated_at || "",
+
+    escalationReason:
+      row.escalation_reason || "",
+
+    adminRemarks:
+      row.admin_remarks || "",
+
+    resolutionDetails:
+      row.resolution_details || "",
+
+    resolvedAt:
+      row.resolved_at || "",
+  };
+}
+
+/*
+  Get all complaints from Supabase.
+*/
 export async function getComplaints(): Promise<Complaint[]> {
   const { data, error } = await supabase
     .from("complaints")
@@ -23,67 +96,12 @@ export async function getComplaints(): Promise<Complaint[]> {
     return [];
   }
 
-  return (data || []).map(
-    (row): Complaint => ({
-      id: row.id,
-
-      complainantType:
-        row.complainant_type,
-
-      complainantName:
-        row.complainant_name,
-
-      complainantId:
-        row.complainant_id,
-
-      title: row.title,
-
-      category: row.category,
-
-      description: row.description,
-
-      location: row.location,
-
-      priority: row.priority,
-
-      status: row.status,
-
-      assignedDepartment:
-        row.assigned_department || "",
-
-      assignedAuthority:
-        row.assigned_authority || "",
-
-      submittedAt:
-        row.submitted_at,
-
-      dueDate:
-        row.due_date || "",
-
-      escalationLevel:
-        row.escalation_level || 0,
-
-      escalatedTo:
-        row.escalated_to || "",
-
-      escalatedAt:
-        row.escalated_at || "",
-
-      escalationReason:
-        row.escalation_reason || "",
-
-      adminRemarks:
-        row.admin_remarks || "",
-
-      resolutionDetails:
-        row.resolution_details || "",
-
-      resolvedAt:
-        row.resolved_at || "",
-    })
-  );
+  return (data || []).map(mapComplaint);
 }
 
+/*
+  Get one complaint using ticket ID.
+*/
 export async function getComplaintById(
   id: string
 ): Promise<Complaint | undefined> {
@@ -106,65 +124,13 @@ export async function getComplaintById(
     return undefined;
   }
 
-  return {
-    id: data.id,
-
-    complainantType:
-      data.complainant_type,
-
-    complainantName:
-      data.complainant_name,
-
-    complainantId:
-      data.complainant_id,
-
-    title: data.title,
-
-    category: data.category,
-
-    description: data.description,
-
-    location: data.location,
-
-    priority: data.priority,
-
-    status: data.status,
-
-    assignedDepartment:
-      data.assigned_department || "",
-
-    assignedAuthority:
-      data.assigned_authority || "",
-
-    submittedAt:
-      data.submitted_at,
-
-    dueDate:
-      data.due_date || "",
-
-    escalationLevel:
-      data.escalation_level || 0,
-
-    escalatedTo:
-      data.escalated_to || "",
-
-    escalatedAt:
-      data.escalated_at || "",
-
-    escalationReason:
-      data.escalation_reason || "",
-
-    adminRemarks:
-      data.admin_remarks || "",
-
-    resolutionDetails:
-      data.resolution_details || "",
-
-    resolvedAt:
-      data.resolved_at || "",
-  };
+  return mapComplaint(data);
 }
 
+/*
+  Get complaints submitted by
+  a particular user.
+*/
 export async function getComplaintsByUser(
   userType: UserType,
   userId: string
@@ -187,67 +153,12 @@ export async function getComplaintsByUser(
     return [];
   }
 
-  return (data || []).map(
-    (row): Complaint => ({
-      id: row.id,
-
-      complainantType:
-        row.complainant_type,
-
-      complainantName:
-        row.complainant_name,
-
-      complainantId:
-        row.complainant_id,
-
-      title: row.title,
-
-      category: row.category,
-
-      description: row.description,
-
-      location: row.location,
-
-      priority: row.priority,
-
-      status: row.status,
-
-      assignedDepartment:
-        row.assigned_department || "",
-
-      assignedAuthority:
-        row.assigned_authority || "",
-
-      submittedAt:
-        row.submitted_at,
-
-      dueDate:
-        row.due_date || "",
-
-      escalationLevel:
-        row.escalation_level || 0,
-
-      escalatedTo:
-        row.escalated_to || "",
-
-      escalatedAt:
-        row.escalated_at || "",
-
-      escalationReason:
-        row.escalation_reason || "",
-
-      adminRemarks:
-        row.admin_remarks || "",
-
-      resolutionDetails:
-        row.resolution_details || "",
-
-      resolvedAt:
-        row.resolved_at || "",
-    })
-  );
+  return (data || []).map(mapComplaint);
 }
 
+/*
+  Add a new complaint.
+*/
 export async function addComplaint(
   complaint: Complaint
 ): Promise<Complaint | null> {
@@ -296,7 +207,7 @@ export async function addComplaint(
         complaint.dueDate || null,
 
       escalation_level:
-        complaint.escalationLevel || 0,
+        complaint.escalationLevel ?? 0,
 
       escalated_to:
         complaint.escalatedTo || null,
@@ -316,7 +227,7 @@ export async function addComplaint(
       resolved_at:
         complaint.resolvedAt || null,
     })
-    .select()
+    .select("*")
     .single();
 
   if (error) {
@@ -328,71 +239,12 @@ export async function addComplaint(
     return null;
   }
 
-  return {
-    id: data.id,
-
-    complainantType:
-      data.complainant_type,
-
-    complainantName:
-      data.complainant_name,
-
-    complainantId:
-      data.complainant_id,
-
-    title:
-      data.title,
-
-    category:
-      data.category,
-
-    description:
-      data.description,
-
-    location:
-      data.location,
-
-    priority:
-      data.priority,
-
-    status:
-      data.status,
-
-    assignedDepartment:
-      data.assigned_department || "",
-
-    assignedAuthority:
-      data.assigned_authority || "",
-
-    submittedAt:
-      data.submitted_at,
-
-    dueDate:
-      data.due_date || "",
-
-    escalationLevel:
-      data.escalation_level || 0,
-
-    escalatedTo:
-      data.escalated_to || "",
-
-    escalatedAt:
-      data.escalated_at || "",
-
-    escalationReason:
-      data.escalation_reason || "",
-
-    adminRemarks:
-      data.admin_remarks || "",
-
-    resolutionDetails:
-      data.resolution_details || "",
-
-    resolvedAt:
-      data.resolved_at || "",
-  };
+  return mapComplaint(data);
 }
 
+/*
+  Update an existing complaint.
+*/
 export async function updateComplaint(
   complaint: Complaint
 ): Promise<boolean> {
@@ -439,7 +291,7 @@ export async function updateComplaint(
         complaint.dueDate || null,
 
       escalation_level:
-        complaint.escalationLevel || 0,
+        complaint.escalationLevel ?? 0,
 
       escalated_to:
         complaint.escalatedTo || null,
@@ -473,6 +325,9 @@ export async function updateComplaint(
   return true;
 }
 
+/*
+  Delete a complaint.
+*/
 export async function deleteComplaint(
   id: string
 ): Promise<boolean> {
@@ -493,6 +348,9 @@ export async function deleteComplaint(
   return true;
 }
 
+/*
+  Generate a unique ticket ID.
+*/
 export function generateTicketId(
   userType: UserType
 ): string {
@@ -503,7 +361,8 @@ export function generateTicketId(
 
   const randomNumber =
     Math.floor(
-      100000 + Math.random() * 900000
+      100000 +
+        Math.random() * 900000
     );
 
   return `${prefix}-${randomNumber}`;
